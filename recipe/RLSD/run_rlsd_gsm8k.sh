@@ -15,7 +15,7 @@ export PATH=/usr/local/cuda/bin:$PATH
 export TORCH_COMPILE_DISABLE=1
 export VLLM_LOGGING_LEVEL=WARNING
 export NCCL_DEBUG=WARN
-
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
@@ -65,11 +65,13 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         data.max_response_length=8192 \
         trainer.default_local_dir="${CKPT_DIR}" \
         trainer.project_name=rlsd \
-        trainer.experiment_name="rlsd-gsm8k-qwen25-3b-${TIMESTAMP}" \
+        trainer.experiment_name="rlsd-gsm8k-temp-1-qwen25-3b-${TIMESTAMP}" \
         trainer.total_training_steps=500 \
         trainer.save_freq=50 \
         trainer.test_freq=10 \
         trainer.resume_mode=auto \
+        trainer.n_gpus_per_node=4 \
+        trainer.nnodes=1 \
         mrsd.student_rollout_per_problem=8 \
         mrsd.problems_per_step=8 \
         mrsd.grpo_only=false \
