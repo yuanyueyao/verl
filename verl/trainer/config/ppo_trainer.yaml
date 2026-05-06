@@ -79,6 +79,10 @@ data:
   # If the remote tokenizer has a Python file, this flag determines whether to allow using it.
   trust_remote_code: False
 
+  # If True, openai/gsm8k uses RLSD student chat (recipe.RLSD.rlsd.prompt.build_student_messages)
+  # and RL reward/validation use last \\boxed{} + math_verify (same as MRSD eval).
+  gsm8k_align_rlsd: False
+
   # Optional: specify a custom dataset class path and name if overriding default loading behavior.
   custom_cls:
 

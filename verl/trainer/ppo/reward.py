@@ -19,7 +19,7 @@ from functools import partial
 import ray
 
 from verl import DataProto
-from verl.utils.reward_score import default_compute_score
+from verl.utils.reward_score import default_compute_score, set_gsm8k_align_rlsd
 
 
 def get_custom_reward_fn(config):
@@ -70,6 +70,8 @@ def load_reward_manager(config, tokenizer, num_examine, **reward_kwargs):
     Returns:
         An instance of the specified reward manager class.
     """
+    set_gsm8k_align_rlsd(bool(config.data.get("gsm8k_align_rlsd", False)))
+
     from verl.workers.reward_manager import get_reward_manager_cls
 
     # The list of pre-defined reward managers are defined in `verl/workers/reward_manager/`:

@@ -15,6 +15,16 @@
 
 from verl.utils.import_utils import deprecated
 
+# Set True via set_gsm8k_align_rlsd() from verl.trainer.ppo.reward.load_reward_manager
+# when data.gsm8k_align_rlsd=true: use recipe.RLSD boxed + math_verify for openai/gsm8k.
+_GSM8K_ALIGN_RLSD: bool = False
+
+
+def set_gsm8k_align_rlsd(enabled: bool) -> None:
+    """Enable RLSD-style scoring (last \\boxed{} + math_verify) for data_source openai/gsm8k."""
+    global _GSM8K_ALIGN_RLSD
+    _GSM8K_ALIGN_RLSD = bool(enabled)
+
 
 def default_compute_score(data_source, solution_str, ground_truth, extra_info=None, sandbox_fusion_url=None, concurrent_semaphore=None, memory_limit_mb=None):
     """Compute the score for a given solution based on the data source.
@@ -33,6 +43,13 @@ def default_compute_score(data_source, solution_str, ground_truth, extra_info=No
         NotImplementedError: If the reward function is not implemented for the given data source.
     """
     if data_source == "openai/gsm8k":
+        if _GSM8K_ALIGN_RLSD:
+            try:
+                from recipe.RLSD.rlsd.verifier import is_correct
+
+                return float(is_correct(solution_str, str(ground_truth)))
+            except Exception:
+                pass
         from . import gsm8k
 
         res = gsm8k.compute_score(solution_str, ground_truth)
@@ -103,4 +120,4 @@ def _default_compute_score(data_source, solution_str, ground_truth, extra_info=N
     return default_compute_score(data_source, solution_str, ground_truth, extra_info, sandbox_fusion_url, concurrent_semaphore, memory_limit_mb)
 
 
-__all__ = ["default_compute_score"]
+__all__ = ["default_compute_score", "set_gsm8k_align_rlsd"]

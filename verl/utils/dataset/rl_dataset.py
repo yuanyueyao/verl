@@ -34,6 +34,31 @@ from verl.utils.model import compute_position_id_with_mask
 logger = logging.getLogger(__name__)
 
 
+def _openai_gsm8k_messages_for_chat_template(messages: list, gsm8k_align_rlsd: bool) -> list:
+    """
+    Build chat messages for ``openai/gsm8k`` before ``apply_chat_template``.
+
+    If gsm8k_align_rlsd: use RLSD ``build_student_messages`` (same as MRSD student / RLSD eval).
+    Else: legacy verl prefix (short system + raw user messages from parquet).
+    """
+    if gsm8k_align_rlsd:
+        try:
+            from recipe.RLSD.rlsd.prompt import build_student_messages, question_from_verl_prompt
+
+            raw = messages if isinstance(messages, list) else list(messages)
+            q = question_from_verl_prompt(raw)
+            return build_student_messages(q)
+        except Exception as e:
+            logger.warning("gsm8k_align_rlsd=True but RLSD prompt import failed (%s); using legacy GSM8K template.", e)
+    return [
+        {
+            "role": "system",
+            "content": "Please reason step by step, and put your final answer within \\boxed{}.",
+        },
+        *messages,
+    ]
+
+
 def collate_fn(data_list: list[dict]) -> dict:
     """
     Collate a batch of sample dicts into batched tensors and arrays.
@@ -161,9 +186,14 @@ class RLHFDataset(Dataset):
                     return len(processor(text=[raw_prompt], images=images, videos=videos)["input_ids"][0])
 
             else:
+                gsm8k_align_rlsd = self.config.get("gsm8k_align_rlsd", False)
 
                 def doc2len(doc) -> int:
-                    return len(tokenizer.apply_chat_template(doc[prompt_key], add_generation_prompt=True))
+                    msgs = doc[prompt_key]
+                    if doc.get("data_source") == "openai/gsm8k":
+                        tmpl = _openai_gsm8k_messages_for_chat_template(msgs, gsm8k_align_rlsd)
+                        return len(tokenizer.apply_chat_template(tmpl, add_generation_prompt=True))
+                    return len(tokenizer.apply_chat_template(msgs, add_generation_prompt=True))
 
             self.dataframe = self.dataframe.filter(
                 lambda doc: doc2len(doc) <= self.max_prompt_length,
@@ -255,16 +285,11 @@ class RLHFDataset(Dataset):
 
         else:
             if row_dict.get("data_source") == "openai/gsm8k":
+                gsm8k_msgs = _openai_gsm8k_messages_for_chat_template(
+                    messages, self.config.get("gsm8k_align_rlsd", False)
+                )
                 raw_prompt = self.tokenizer.apply_chat_template(
-                    [
-                        {
-                            "role": "system",
-                            "content": (
-                                "Please reason step by step, and put your final answer within \\boxed{}."
-                            ),
-                        },
-                        *messages,
-                    ],
+                    gsm8k_msgs,
                     add_generation_prompt=True,
                     tokenize=False,
                 )
