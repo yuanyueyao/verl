@@ -1,11 +1,11 @@
 #!/bin/bash
-# Qwen3-4B-Instruct-2507 · OpenThoughts 训练集 · MATH-500/AIME24/AIME25 评测 · 完整 RLSD（SD + GRPO）
-# 用法：bash recipe/RLSD/run_rlsd_gsm8k.sh [额外 hydra overrides]
+# Qwen2.5-3B-Instruct · OpenThoughts 训练集 · MATH-500/AIME24/AIME25 评测 · OPSD-Only（关闭 GRPO）
+# 用法：bash recipe/RLSD/run_rlsd_gsm8k_opsd_only.sh [额外 hydra overrides]
 #
-# - 训练：OpenThoughts parquet（problem/Answer/solution）；MRSD 题池从 train_files 构建（不配 mrsd_problems_path）
-# - 评测：data/math 下 val_*.parquet（见 recipe/RLSD/data/export_math_val_parquets.py）
-# - mrsd.grpo_only=false → 全错 rollout 走 SD；有对有错走 GRPO
-# - actor 超参与 grpo_only 脚本同骨架（除 grpo_only 外）
+# - 训练：OpenThoughts parquet；MRSD 题池从 train_files 构建（data.mrsd_problems_path=null）
+# - 评测：data/math 下 val_*.parquet（需事先 export_math_val_parquets.py）
+# - mrsd.opsd_only=true → 每题 1×rollout → 必走 SD；不判对错/不更新题池/不毕业检查；mixed 无 GRPO（trainer 仍会忽略配置把 k 强制为 1）
+# - 与 mrsd.grpo_only 互斥；actor 超参与 grpo_only 脚本同骨架
 
 set -euo pipefail
 
@@ -26,12 +26,12 @@ VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONDA_ENV=verl
 
 # ── 默认参数（绝对路径）───────────────────────────────────────────────────────
-MODEL_PATH=/data3/yyy/models/Qwen3-4B-Instruct-2507
+MODEL_PATH=/data3/yyy/models/Qwen2.5-3B-Instruct
 OPS_DIR=/data3/yyy/verl/data/Openthoughts_math_30k_opsd
 TRAIN_PARQUET="${OPS_DIR}/data/train.parquet"
 MATH_EVAL_DIR=/data3/yyy/verl/data/math
 VAL_FILES="[${MATH_EVAL_DIR}/val_MATH-500.parquet,${MATH_EVAL_DIR}/val_aime_2024.parquet,${MATH_EVAL_DIR}/val_aime_2025.parquet]"
-CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_openthoughts_full_qwen3_4b_2507
+CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_openthoughts_opsd_only
 
 # ── 日志目录 ────────────────────────────────────────────────────────────────
 LOG_DIR="${VERL_ROOT}/logs/rlsd"
@@ -40,7 +40,7 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 LOG_FILE="${LOG_DIR}/train_${TIMESTAMP}.log"
 
 echo "========================================================"
-echo "Qwen3-4B-Instruct-2507 · OpenThoughts · 完整 RLSD（SD + GRPO）"
+echo "Qwen2.5-3B-Instruct · OpenThoughts · OPSD-Only（禁用 GRPO）"
 echo "  模型: ${MODEL_PATH}"
 echo "  训练 parquet: ${TRAIN_PARQUET}"
 echo "  评测 parquet: ${MATH_EVAL_DIR}/val_{MATH-500,aime_2024,aime_2025}.parquet"
@@ -64,7 +64,6 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         actor_rollout_ref.actor.kl_loss_coef=0.001 \
         actor_rollout_ref.actor.entropy_coeff=0 \
         actor_rollout_ref.actor.ppo_mini_batch_size=64 \
-        actor_rollout_ref.actor.ppo_max_token_len_per_gpu=10240 \
         actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
         actor_rollout_ref.rollout.temperature=1 \
         actor_rollout_ref.rollout.top_p=0.9 \
@@ -75,7 +74,7 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         data.max_response_length=8192 \
         trainer.default_local_dir="${CKPT_DIR}" \
         trainer.project_name=rlsd \
-        trainer.experiment_name="openthoughts-full-rlsd-qwen3-4b-instruct-2507-${TIMESTAMP}" \
+        trainer.experiment_name="openthoughts-opsd-only-qwen25-3b-instruct-${TIMESTAMP}" \
         trainer.total_training_steps=500 \
         trainer.save_freq=100 \
         trainer.test_freq=10 \
@@ -83,10 +82,11 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.n_gpus_per_node=4 \
         trainer.nnodes=1 \
         trainer.default_local_dir="${CKPT_DIR}" \
-        mrsd.student_rollout_per_problem=8 \
+        mrsd.student_rollout_per_problem=1 \
         mrsd.problems_per_step=32 \
         mrsd.val_max_samples=-1 \
-        mrsd.grpo_only=false \
+        mrsd.opsd_only=true \
+        mrsd.skip_initial_eval=true \
         "$@" \
     2>&1 | tee "${LOG_FILE}"
 

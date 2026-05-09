@@ -13,6 +13,10 @@ export PATH=/usr/local/cuda/bin:$PATH
 export TORCH_COMPILE_DISABLE=1
 export VLLM_LOGGING_LEVEL=WARNING
 export NCCL_DEBUG=WARN
+export VERL_TMP_ROOT=/data3/yyy/tmp
+export TMPDIR="${VERL_TMP_ROOT}"
+export RAY_TMPDIR="${VERL_TMP_ROOT}/ray"
+mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -36,7 +40,7 @@ if [ -n "${MRSD_PROBLEMS_PATH:-}" ]; then
     echo "[INFO] 使用 MRSD_PROBLEMS_PATH: ${PROBLEMS_PATH}"
 elif [ -f "${DATA_DIR}/dead_zone_verified.jsonl" ]; then
     PROBLEMS_PATH="${DATA_DIR}/dead_zone_verified.jsonl"
-    echo "[INFO] 使用 math_verify 验证后的真死区: ${PROBLEMS_PATH}"
+    echo "[INFO] 使用 math_verify 复核后的题池 jsonl: ${PROBLEMS_PATH}"
 elif [ -f "${DATA_DIR}/dead_zone_phase_a.jsonl" ]; then
     PROBLEMS_PATH="${DATA_DIR}/dead_zone_phase_a.jsonl"
 elif [ -f "${DATA_DIR}/dead_zone_problems.jsonl" ]; then
@@ -85,9 +89,9 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.save_freq=50 \
         trainer.test_freq=10 \
         trainer.resume_mode=auto \
-        mrsd.problems_per_step=8 \
+        mrsd.problems_per_step=32 \
         mrsd.student_rollout_per_problem=8 \
-        mrsd.kl_clip=1.0 \
+        mrsd.kl_clip=10.0 \
         "$@" \
     2>&1 | tee "${LOG_FILE}"
 

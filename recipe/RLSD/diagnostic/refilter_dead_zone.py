@@ -1,11 +1,11 @@
 """
-对已有的死区题目用更长 token 和更高温度重新筛选，确认真正的 pass@64=0 死区。
+对 pass@k 全错子集中的题目，用更长 token / 更高温度重跑 pass@k，筛出「仍为全错」的记录。
 
 参数统一：max_tokens=8196, temperature=1.0, top_p=1.0
 
 两阶段策略：
   Phase A: n=1 快速排除能答对的
-  Phase B: 对 Phase A 失败的补 63 次，确认 pass@64=0
+  Phase B: 对 Phase A 失败的补 63 次，确认本轮 pass@64 仍为 0
 
 用法：
     conda run -n verl python recipe/RLSD/diagnostic/refilter_dead_zone.py \
@@ -40,10 +40,7 @@ def parse_args():
     return p.parse_args()
 
 
-SYSTEM_PROMPT = (
-    "You are a mathematical reasoning assistant. "
-    "Solve the problem step by step and put your final answer in \\boxed{}."
-)
+SYSTEM_PROMPT = "You are a helpful assistant"
 
 
 def build_prompt(tokenizer, question: str) -> str:
@@ -57,13 +54,13 @@ def build_prompt(tokenizer, question: str) -> str:
 def main():
     args = parse_args()
 
-    # ── 加载死区题目 ──
+    # ── 加载输入 jsonl ──
     print(f"[refilter] 加载: {args.input}")
     problems = []
     with open(args.input) as f:
         for line in f:
             problems.append(json.loads(line))
-    print(f"[refilter] 共 {len(problems)} 道原死区题")
+    print(f"[refilter] 共 {len(problems)} 道题")
     print(f"[refilter] 参数: max_tokens={args.max_new_tokens}, temp={args.temperature}, top_p={args.top_p}")
 
     # ── 初始化 vLLM ──
@@ -131,7 +128,7 @@ def main():
     # ══════════════════════════════════════════════════════════════
     remaining_indices = [i for i in range(len(problems)) if i not in phase_a_correct]
 
-    confirmed_dead = []
+    verified_still_zero = []
 
     if remaining_indices:
         n_extra = args.n_samples - 1
@@ -171,10 +168,10 @@ def main():
                     prob_out["pass_at_1"] = 0.0
                     prob_out["pass_at_8"] = 0.0
                     prob_out["pass_at_64"] = 0.0
-                    prob_out["is_dead_zone"] = True
+                    prob_out["is_dead_zone"] = True  # 历史字段：仍为全错
                     prob_out["first_wrong_traj"] = first_resp
                     prob_out["wrong_trajs"] = [r for r in all_resps if not is_correct(r, gt)][:4]
-                    confirmed_dead.append(prob_out)
+                    verified_still_zero.append(prob_out)
 
                 n_done_b += 1
 
@@ -183,7 +180,7 @@ def main():
             eta = (len(remaining_indices) - n_done_b) / speed_b if speed_b > 0 else 0
             print(
                 f"  [Phase B] {n_done_b}/{len(remaining_indices)}  "
-                f"确认死区: {len(confirmed_dead)}  "
+                f"仍全错: {len(verified_still_zero)}  "
                 f"speed={speed_b:.2f} prob/s  ETA={eta/60:.1f}min"
             )
 
@@ -191,14 +188,14 @@ def main():
     total_time = time.time() - t0
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w") as f:
-        for r in confirmed_dead:
+        for r in verified_still_zero:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     print(f"\n[refilter] === 结果 ===")
-    print(f"  原死区题数:     {len(problems)}")
+    print(f"  输入题数:       {len(problems)}")
     print(f"  Phase A 淘汰:   {len(phase_a_correct)} (给够 token 后能答对)")
-    print(f"  Phase B 确认死区: {len(confirmed_dead)}")
-    print(f"  淘汰率:         {100*(len(problems)-len(confirmed_dead))/len(problems):.1f}%")
+    print(f"  Phase B 仍全错: {len(verified_still_zero)}")
+    print(f"  淘汰率:         {100*(len(problems)-len(verified_still_zero))/len(problems):.1f}%")
     print(f"  总用时:         {total_time/60:.1f}min")
     print(f"  输出: {args.output}")
 

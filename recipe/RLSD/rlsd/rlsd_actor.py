@@ -120,7 +120,7 @@ class RLSDPPOActor(DataParallelPPOActor):
             append_to_dict(metrics, step_metrics)
 
         grad_norm = self._optimizer_step()
-        append_to_dict(metrics, {"actor/grad_norm": grad_norm.detach().item()})
+        append_to_dict(metrics, {"sd/grad_norm": grad_norm.detach().item()})
         return metrics
 
     # ──────────────────────────────────────────────────────────────

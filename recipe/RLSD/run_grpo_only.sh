@@ -1,6 +1,6 @@
 #!/bin/bash
 # GRPO-Only 对比实验（与 RLSD 做对照）
-# 同数据集、同模型、同超参，唯一区别：跳过 SD 分支，死区题不产生梯度
+# 同数据集、同模型、同超参，唯一区别：跳过 SD 分支（仅 GRPO）
 # 用法：bash recipe/RLSD/run_grpo_only.sh [额外 hydra overrides]
 #
 # GRPO 超参与 run_rlsd.sh 完全一致（use_kl_loss / kl_loss_coef / clip_ratio 等），
@@ -14,6 +14,10 @@ export PATH=/usr/local/cuda/bin:$PATH
 export TORCH_COMPILE_DISABLE=1
 export VLLM_LOGGING_LEVEL=WARNING
 export NCCL_DEBUG=WARN
+export VERL_TMP_ROOT=/data3/yyy/tmp
+export TMPDIR="${VERL_TMP_ROOT}"
+export RAY_TMPDIR="${VERL_TMP_ROOT}/ray"
+mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -44,7 +48,7 @@ echo "  模型:     ${MODEL_PATH}"
 echo "  数据:     ${PROBLEMS_PATH}"
 echo "  检查点:   ${CKPT_DIR}"
 echo "  日志:     ${LOG_FILE}"
-echo "  说明:     SD 分支已禁用，死区题跳过（grpo_only=true）"
+echo "  说明:     SD 分支已禁用（grpo_only=true）"
 echo "========================================================"
 
 # ── 启动训练 ────────────────────────────────────────────────────────────────
@@ -71,7 +75,7 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.save_freq=50 \
         trainer.test_freq=10 \
         trainer.resume_mode=auto \
-        mrsd.problems_per_step=8 \
+        mrsd.problems_per_step=32 \
         mrsd.student_rollout_per_problem=8 \
         mrsd.grpo_only=true \
         "$@" \

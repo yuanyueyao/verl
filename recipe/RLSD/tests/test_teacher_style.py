@@ -142,7 +142,7 @@ def main():
     print("模型加载完成\n")
 
     questions = load_questions(DATA_PATH, args.n_questions)
-    print(f"加载了 {len(questions)} 道死区题目\n")
+    print(f"加载了 {len(questions)} 道样题\n")
 
     for qi, q in enumerate(questions):
         question = q["question"]

@@ -9,9 +9,13 @@ data:
 
   use_shm: False
 
-  train_files: /data3/yyy/verl/data/gsm8k/train.parquet
+  train_files: /data3/yyy/verl/data/Openthoughts_math_30k_opsd/data/train.parquet
 
-  val_files: /data3/yyy/verl/data/gsm8k/test.parquet
+  # 评测集：MATH-500 / AIME24 / AIME25（由 recipe/RLSD/data/export_math_val_parquets.py 从 data/math 生成）
+  val_files:
+    - /data3/yyy/verl/data/math/val_MATH-500.parquet
+    - /data3/yyy/verl/data/math/val_aime_2024.parquet
+    - /data3/yyy/verl/data/math/val_aime_2025.parquet
 
   prompt_key: prompt
 
@@ -55,7 +59,7 @@ data:
 
     name: null
 
-  # ── MRSD 专用：训练题池死区文件（jsonl）；null 则从 train_files parquet 建池。验证集仅看 data.val_files（见 rlsd_trainer._evaluate）。
+  # ── MRSD 可选：从 pass@k 诊断 jsonl 建训练题池；null 则用 train_files 的 parquet 全量建池。验证集仅看 data.val_files（见 rlsd_trainer._evaluate）。
   mrsd_problems_path: null
 
 # config for actor, rollout and reference model
@@ -272,7 +276,7 @@ actor_rollout_ref:
 
     dtype: bfloat16
 
-    gpu_memory_utilization: 0.4
+    gpu_memory_utilization: 0.55
 
     ignore_eos: False
 
@@ -663,6 +667,9 @@ ray_init:
 # ══════════════════════════════════════════════════════════════════════
 mrsd:
 
+  # MRSDDataset.sample_batch 用 RNG 种子（可复现题池抽样）
+  dataset_seed: 42
+
   # Student rollout 采样数（per problem）
   student_rollout_per_problem: 8
 
@@ -672,17 +679,25 @@ mrsd:
   # GRPO 的 PPO clip 由 actor_rollout_ref.actor.clip_ratio / clip_ratio_low / clip_ratio_high 控制
 
   # 每步采样多少道题
-  problems_per_step: 8
-
-  # 毕业检查间隔（steps）
-  graduation_interval: 100
-
-  # 毕业标准：至少采样 k 次
-  graduation_pass_at_k: 4
+  problems_per_step: 32
 
   # 验证集评测条数：正整数=截断前 N 条；0 或 -1=整份 val parquet（GSM8K test 约 1319，eval 更慢）
   val_max_samples: -1
 
-  # GRPO-Only 对比模式：true = 跳过 SD 分支，死区题不产生梯度
-  # false（默认）= 完整 RLSD（SD + GRPO 混合）
+  # true = 跳过训练开始前 step=0 的验证（仍可按 trainer.test_freq 在训练中评测）
+  skip_initial_eval: false
+
+  # 名称含 aime 的验证 parquet：每题随机采样 n 次（见 eval_aime_avg_at_n）；宏指标同时记 val/.../acc_at_n 与 avg_at_n（同值）
+  eval_aime_avg_at_n: 12
+
+  eval_aime_temperature: 1.0
+
+  eval_aime_top_p: 0.95
+
+  eval_aime_top_k: -1
+
+  # GRPO-Only：true = 跳过 SD，仅 mixed 走 GRPO
   grpo_only: false
+
+  # OPSD-Only：true = 跳过 GRPO；每题强制 1 次 rollout；不判对错、不写 MRSDDataset（与 grpo_only 互斥）
+  opsd_only: false

@@ -16,6 +16,14 @@ os.environ.setdefault("CUDA_HOME", "/usr/local/cuda")
 if "/usr/local/cuda/bin" not in os.environ.get("PATH", ""):
     os.environ["PATH"] = "/usr/local/cuda/bin:" + os.environ.get("PATH", "")
 
+# Python tempfile / Torch 等与 Ray spill 默认写根分区 /tmp；改到大容量盘
+_verl_tmp = os.path.abspath(os.path.expanduser(os.environ.get("VERL_TMP_ROOT", "/data3/yyy/tmp")))
+os.makedirs(_verl_tmp, exist_ok=True)
+_ray_tmp = os.path.join(_verl_tmp, "ray")
+os.makedirs(_ray_tmp, exist_ok=True)
+os.environ.setdefault("TMPDIR", _verl_tmp)
+os.environ.setdefault("RAY_TMPDIR", _ray_tmp)
+
 import hydra
 import ray
 from omegaconf import OmegaConf
@@ -35,6 +43,8 @@ def run_rlsd(config) -> None:
                 "VLLM_LOGGING_LEVEL": "WARNING",
                 "TORCH_COMPILE_DISABLE": "1",
                 "CUDA_HOME": "/usr/local/cuda",
+                "TMPDIR": os.environ["TMPDIR"],
+                "RAY_TMPDIR": os.environ["RAY_TMPDIR"],
             }},
             num_cpus=config.ray_init.num_cpus,
         )
@@ -90,30 +100,65 @@ class TaskRunner:
             mapping=mapping,
         )
 
-        # ── 标准 verl 数据集（只用于满足 dataloader 初始化，不参与 MRSD 训练）
+        # ── 标准 verl 数据集（只用于满足父类 / dataloader 初始化；MRSD fit 不迭代 train_dataloader）
+        from omegaconf import ListConfig
         from verl.trainer.main_ppo import create_rl_dataset, create_rl_sampler
-        train_dataset = create_rl_dataset(config.data.train_files, config.data, tokenizer, None)
+
+        def _data_files_to_list(fs) -> list[str]:
+            if fs is None:
+                return []
+            if isinstance(fs, (list, tuple, ListConfig)):
+                return [str(x) for x in fs]
+            return [str(fs)]
+
+        def _parquet_has_column(path: str, col: str) -> bool:
+            import pyarrow.parquet as pq
+
+            return col in pq.read_schema(path).names
+
+        train_paths = _data_files_to_list(config.data.train_files)
+        if not train_paths:
+            raise ValueError("config.data.train_files 不能为空")
+        if len(train_paths) > 1:
+            print("[main] WARN: MRSDDataset.from_parquet 仅使用 train_files 列表中的第一个路径")
+        train_pool_src = train_paths[0]
+
+        rlhf_train_spec = config.data.train_files
+        if _parquet_has_column(train_paths[0], "problem") and not _parquet_has_column(
+            train_paths[0], "prompt"
+        ):
+            val_paths = _data_files_to_list(config.data.val_files)
+            if not val_paths:
+                raise ValueError(
+                    "训练集为 OpenThoughts 布局（有 problem、无 prompt）时，必须为 data.val_files "
+                    "提供至少一个含 prompt 列的 verl parquet，以供 RLHF Dataset 占位初始化"
+                )
+            rlhf_train_spec = val_paths[0]
+            print(
+                f"[main] 训练题池使用 OpenThoughts parquet；RLHF train_dataset 占位文件: {rlhf_train_spec}"
+            )
+
+        train_dataset = create_rl_dataset(rlhf_train_spec, config.data, tokenizer, None)
         val_dataset = create_rl_dataset(config.data.val_files, config.data, tokenizer, None)
         train_sampler = create_rl_sampler(config.data, train_dataset)
 
         # ── MRSD 问题数据集 ───────────────────────────────────────────
         mrsd_cfg = config.mrsd
         mrsd_problems_path = config.data.get("mrsd_problems_path", None)
-        dataset_kwargs = dict(
-            graduation_interval=int(mrsd_cfg.graduation_interval),
-            graduation_pass_at_k=int(mrsd_cfg.graduation_pass_at_k),
-        )
+        dataset_kwargs = {}
+        ds_seed = OmegaConf.select(mrsd_cfg, "dataset_seed", default=None)
+        if ds_seed is not None:
+            dataset_kwargs["seed"] = int(ds_seed)
         if mrsd_problems_path:
-            print(f"[main] 加载死区问题(jsonl): {mrsd_problems_path}")
+            print(f"[main] 从 jsonl 加载训练题池: {mrsd_problems_path}")
             mrsd_dataset = MRSDDataset.from_pass_at_k_results(
                 pass_at_k_jsonl=mrsd_problems_path,
                 type_b_only=True,
                 **dataset_kwargs,
             )
         else:
-            train_files = config.data.train_files
-            print(f"[main] mrsd_problems_path 未设置，从 train_files 加载全量数据: {train_files}")
-            mrsd_dataset = MRSDDataset.from_parquet(train_files, **dataset_kwargs)
+            print(f"[main] mrsd_problems_path 未设置，从 train parquet 加载题池: {train_pool_src}")
+            mrsd_dataset = MRSDDataset.from_parquet(train_pool_src, **dataset_kwargs)
         print(f"[main] 共 {len(mrsd_dataset)} 道题目")
 
         # ── 训练器 ────────────────────────────────────────────────────

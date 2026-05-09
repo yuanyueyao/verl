@@ -42,7 +42,7 @@ def run_inference(model_dir: str, data_path: str, n: int, out_path: str):
     )
     model.eval()
 
-    # 加载 dead-zone 样题
+    # 加载 jsonl 样题（与 MRSDDataset / pass@k 流水线格式一致）
     samples = []
     with open(data_path) as f:
         for i, line in enumerate(f):

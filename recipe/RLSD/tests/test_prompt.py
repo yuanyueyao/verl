@@ -25,7 +25,9 @@ from recipe.RLSD.rlsd.prompt import (
     _truncate_wrong_traj,
 )
 
-_STUDENT_USER_TAIL = "\n\nNow provide a detailed step-by-step solution:"
+_STUDENT_USER_TAIL = (
+    "\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+)
 
 # ═══════════════════════════════════════════════════════════
 # 测试数据
@@ -76,12 +78,13 @@ def test_student_messages():
     assert msgs[0]["role"] == "system"
     assert msgs[1]["role"] == "user"
     assert msgs[0]["content"] == SYSTEM_STUDENT
-    assert "\\boxed{}" in msgs[0]["content"], "system prompt 应包含 \\boxed{}"
+    assert "\\boxed{}" in msgs[1]["content"], "user 结尾应要求 \\boxed{}"
     assert msgs[1]["content"] == f"Problem: {SAMPLE_QUESTION}{_STUDENT_USER_TAIL}"
     assert SAMPLE_ANSWER not in msgs[1]["content"], "student prompt 不应泄漏答案"
 
     print("✓ 结构正确：2 条消息 (system + user)")
-    print("✓ system prompt 包含 \\boxed{} 格式要求")
+    print("✓ system 为简短助手角色")
+    print("✓ user 末尾包含 \\boxed{} 与逐步推理要求")
     print("✓ user 内容仅包含问题，无答案泄漏")
 
 
@@ -106,7 +109,7 @@ def test_teacher_context_a():
     assert f"Problem: {SAMPLE_QUESTION}" in user_content, "应包含原始问题"
     assert SAMPLE_ANSWER in user_content, "应包含正确答案"
     assert "correct answer is:" in user_content, "应有正确答案的引导词"
-    assert "step-by-step" in user_content, "应引导逐步求解"
+    assert "reason step by step" in user_content.lower(), "应引导逐步求解"
     assert "incorrect" not in user_content.lower(), "Context A 不应包含'错误'相关词汇"
 
     print("✓ 结构正确：2 条消息 (system + user)")
@@ -136,7 +139,7 @@ def test_teacher_context_b():
     assert f"Problem: {SAMPLE_QUESTION}" in user_content, "应包含原始问题"
     assert SAMPLE_ANSWER in user_content, "应包含正确答案"
     assert "incorrect" in user_content.lower(), "应标注之前的尝试是错误的"
-    assert "reconsider" in user_content.lower(), "应引导重新思考"
+    assert "\\boxed{}" in user_content, "结尾应要求 \\boxed{}"
 
     assert "I'll try to factor" in user_content, "应包含错误轨迹内容"
     assert "I'm stuck" in user_content, "应包含错误轨迹内容"
@@ -153,7 +156,7 @@ def test_teacher_context_b():
     print("✓ 包含原始问题")
     print("✓ 包含错误轨迹（且标注为 incorrect）")
     print("✓ 包含正确答案")
-    print("✓ 内容顺序正确：问题 → 错误轨迹 → 正确答案 → 引导语")
+    print("✓ 引导语一致：结尾为逐步推理与 \\boxed{}")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -272,9 +275,9 @@ def test_context_a_vs_b_diff():
     assert "previous attempt" in content_b, "Context B 应包含错误轨迹"
     print("✓ 只有 Context B 包含错误轨迹引用")
 
-    assert "reconsider" not in content_a.lower(), "Context A 不应有 reconsider"
-    assert "reconsider" in content_b.lower(), "Context B 应有 reconsider"
-    print("✓ 引导语区分：A='work out' vs B='reconsider'")
+    assert content_a.endswith(_STUDENT_USER_TAIL), "Context A 与 student 使用相同 user 结尾"
+    assert content_b.endswith(_STUDENT_USER_TAIL), "Context B 与 student 使用相同 user 结尾"
+    print("✓ Context A / B 的 user 结尾与 student 一致")
 
     print(f"\n  Context A 长度: {len(content_a)} chars")
     print(f"  Context B 长度: {len(content_b)} chars")
@@ -301,6 +304,14 @@ def test_question_from_verl_prompt_legacy_user_only_problem_prefix():
     assert question_from_verl_prompt(prompt) == raw
 
 
+def test_question_from_verl_prompt_legacy_tail():
+    """旧版 user 后缀仍可正确剥离题干。"""
+    raw = "Compute 1+1."
+    legacy = "\n\nNow provide a detailed step-by-step solution:"
+    prompt = [{"role": "user", "content": f"Problem: {raw}{legacy}"}]
+    assert question_from_verl_prompt(prompt) == raw
+
+
 # ═══════════════════════════════════════════════════════════
 # 运行所有测试
 # ═══════════════════════════════════════════════════════════
@@ -315,6 +326,7 @@ if __name__ == "__main__":
     test_question_from_verl_prompt_roundtrip()
     test_question_from_verl_prompt_gsm8k_style()
     test_question_from_verl_prompt_legacy_user_only_problem_prefix()
+    test_question_from_verl_prompt_legacy_tail()
 
     print("\n" + "=" * 60)
     print("  ALL TESTS PASSED ✓")

@@ -1,7 +1,7 @@
 """
-Step 2/3 诊断实验：对 pass@K=0 的死区题目，测试 Context A vs Context B 的修正成功率。
+Step 2/3 诊断实验：对 pass@k 全错子集中的题目，对比 Context A vs Context B 的修正成功率。
 
-输入：run_pass_at_k.py 生成的 dead_zone_problems.jsonl
+输入：run_pass_at_k 导出的 ``*_dead_zone.jsonl``（或等价、含 index/question/ground_truth 的记录）
 输出：context_ab_results.jsonl + 分类报告
 
 用法：
@@ -34,7 +34,7 @@ def parse_args():
     p.add_argument(
         "--dead_zone",
         default="/data3/yyy/verl/data/rlsd/dead_zone_problems.jsonl",
-        help="run_pass_at_k.py 输出的死区题目 jsonl",
+        help="pass@k 全错子集 jsonl（参数名 --dead_zone 为历史兼容）",
     )
     p.add_argument(
         "--model",
@@ -44,7 +44,7 @@ def parse_args():
         "--output_dir",
         default="/data3/yyy/verl/data/rlsd/diagnostic",
     )
-    p.add_argument("--n_problems", type=int, default=50, help="随机抽取多少道死区题目")
+    p.add_argument("--n_problems", type=int, default=50, help="随机抽取多少道题")
     p.add_argument("--n_samples_per_context", type=int, default=16, help="每种 context 采样次数")
     p.add_argument("--n_gpus", type=int, default=8)
     p.add_argument("--max_new_tokens_a", type=int, default=2048, help="Context A 最大生成 tokens")
@@ -65,22 +65,22 @@ def main():
         build_teacher_context_b,
     )
 
-    # ── 加载死区题目 ──
-    dead_zone = []
+    # ── 加载候选题池 ──
+    pool = []
     with open(args.dead_zone) as f:
         for line in f:
             try:
-                dead_zone.append(json.loads(line))
+                pool.append(json.loads(line))
             except Exception:
                 pass
-    print(f"[context_ab] 加载死区题目: {len(dead_zone)} 道")
+    print(f"[context_ab] 加载记录: {len(pool)} 条")
 
-    if len(dead_zone) == 0:
-        print("[context_ab] 没有死区题目，退出")
+    if len(pool) == 0:
+        print("[context_ab] 题池为空，退出")
         return
 
     # 随机抽样
-    sample = random.sample(dead_zone, min(args.n_problems, len(dead_zone)))
+    sample = random.sample(pool, min(args.n_problems, len(pool)))
     print(f"[context_ab] 抽取 {len(sample)} 道题进行 Context A/B 测试")
 
     # ── 初始化 vllm ──
@@ -147,7 +147,7 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     results_path = output_dir / "context_ab_results.jsonl"
-    type_b_path = output_dir / "type_b_problems.jsonl"  # 搜索死区（MRSD 训练集）
+    type_b_path = output_dir / "type_b_problems.jsonl"  # Context B 可出现正确解（MRSD 常用子集）
     type_a_path = output_dir / "type_a_problems.jsonl"  # 知识盲区
 
     n_type_a = 0
@@ -174,7 +174,7 @@ def main():
             acc_a_total += acc_a
             acc_b_total += acc_b
 
-            # §3.2 分层标准：conditioned 后 pass@16 > 0 → Type-B（搜索死区）
+            # 分层：conditioned 后 Context B 是否存在正确样本 → Type-B
             is_type_b = sum(correct_b) > 0
 
             result = {
@@ -219,7 +219,7 @@ def main():
     print(f"  B 优于 A 的题目数:    {sum(1 for r in open(results_path) for d in [json.loads(r)] if d['acc_b'] > d['acc_a'])}")
     print()
     print(f"  Type-A（知识盲区）: {n_type_a} 道  ({100*n_type_a/n_total:.1f}%)")
-    print(f"  Type-B（搜索死区）: {n_type_b} 道  ({100*n_type_b/n_total:.1f}%)")
+    print(f"  Type-B（Context B 可出现正确）: {n_type_b} 道  ({100*n_type_b/n_total:.1f}%)")
     print()
     print("  判断：", end="")
     if acc_b_total / n_total > 0.10 and n_type_b > n_total * 0.1:

@@ -1,11 +1,11 @@
 #!/bin/bash
-# GSM8K + GRPO-Only（与 run_grpo_only.sh 同一套 actor 超参）
+# Qwen3-4B-Instruct-2507 · OpenThoughts 训练集 · MATH-500/AIME24/AIME25 评测 · GRPO-Only
 # 用法：bash recipe/RLSD/run_rlsd_gsm8k_grpo_only.sh [额外 hydra overrides]
 #
-# - data：gsm8k train/test parquet；mrsd_problems_path=null → 从 train.parquet 建 MRSD 题池
-# - mrsd.grpo_only=true → 不跑 SD；仅 mixed rollout 的样本走 GRPO（全队错/全队对无 actor 更新）
-# - actor：与 run_grpo_only.sh 一致（clip / use_kl_loss / kl_loss_coef / entropy_coeff）
-# - 其余常用超参也在下方 python … 参数里写明，可直接改数字
+# - 训练：OpenThoughts parquet（problem/Answer/solution）；MRSD 题池从 train_files 构建（不配 mrsd_problems_path）
+# - 评测：data/math 下由 export_math_val_parquets.py 生成的三个 val_*.parquet（需事先生成）
+# - mrsd.grpo_only=true → 不跑 SD；仅 mixed rollout 的样本走 GRPO
+# - actor：与 run_grpo_only.sh 一致
 
 set -euo pipefail
 
@@ -15,16 +15,24 @@ export PATH=/usr/local/cuda/bin:$PATH
 export TORCH_COMPILE_DISABLE=1
 export VLLM_LOGGING_LEVEL=WARNING
 export NCCL_DEBUG=WARN
+export VERL_TMP_ROOT=/data3/yyy/tmp
+export TMPDIR="${VERL_TMP_ROOT}"
+export RAY_TMPDIR="${VERL_TMP_ROOT}/ray"
+mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 CONDA_ENV=verl
 
-# ── 默认参数 ────────────────────────────────────────────────────────────────
-MODEL_PATH=/data3/yyy/models/Qwen2.5-3B-Instruct
-DATA_DIR=/data3/yyy/verl/data/gsm8k
-CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_gsm8k
+# ── 默认参数（绝对路径）───────────────────────────────────────────────────────
+MODEL_PATH=/data3/yyy/models/Qwen3-4B-Instruct-2507
+OPS_DIR=/data3/yyy/verl/data/Openthoughts_math_30k_opsd
+TRAIN_PARQUET="${OPS_DIR}/data/train.parquet"
+MATH_EVAL_DIR=/data3/yyy/verl/data/math
+# Hydra/OmegaConf 列表；路径勿含空格
+VAL_FILES="[${MATH_EVAL_DIR}/val_MATH-500.parquet,${MATH_EVAL_DIR}/val_aime_2024.parquet,${MATH_EVAL_DIR}/val_aime_2025.parquet]"
+CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_openthoughts_grpo_only_qwen3_4b_2507
 
 # ── 日志目录 ────────────────────────────────────────────────────────────────
 LOG_DIR="${VERL_ROOT}/logs/rlsd"
@@ -33,9 +41,10 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 LOG_FILE="${LOG_DIR}/train_${TIMESTAMP}.log"
 
 echo "========================================================"
-echo "GSM8K GRPO-Only（禁用 SD）"
+echo "Qwen3-4B-Instruct-2507 · OpenThoughts · GRPO-Only（禁用 SD）"
 echo "  模型: ${MODEL_PATH}"
-echo "  数据: ${DATA_DIR}"
+echo "  训练 parquet: ${TRAIN_PARQUET}"
+echo "  评测 parquet: ${MATH_EVAL_DIR}/val_{MATH-500,aime_2024,aime_2025}.parquet"
 echo "  检查点: ${CKPT_DIR}"
 echo "  日志: ${LOG_FILE}"
 echo "========================================================"
@@ -56,24 +65,28 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         actor_rollout_ref.actor.kl_loss_coef=0.001 \
         actor_rollout_ref.actor.entropy_coeff=0 \
         actor_rollout_ref.actor.ppo_mini_batch_size=64 \
+        actor_rollout_ref.actor.ppo_max_token_len_per_gpu=10240 \
         actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
         actor_rollout_ref.rollout.temperature=1 \
         actor_rollout_ref.rollout.top_p=0.9 \
-        data.train_files="${DATA_DIR}/train.parquet" \
-        data.val_files="${DATA_DIR}/test.parquet" \
+        data.train_files="${TRAIN_PARQUET}" \
+        data.val_files="${VAL_FILES}" \
+        data.mrsd_problems_path=null \
         data.max_prompt_length=1024 \
         data.max_response_length=8192 \
         trainer.default_local_dir="${CKPT_DIR}" \
         trainer.project_name=rlsd \
-        trainer.experiment_name="rlsd-gsm8k-grpo-only-temp-1-qwen25-3b-${TIMESTAMP}" \
+        trainer.experiment_name="openthoughts-grpo-only-qwen3-4b-instruct-2507-${TIMESTAMP}" \
         trainer.total_training_steps=500 \
-        trainer.save_freq=50 \
+        trainer.save_freq=100 \
         trainer.test_freq=10 \
         trainer.resume_mode=auto \
         trainer.n_gpus_per_node=4 \
         trainer.nnodes=1 \
+        trainer.default_local_dir="${CKPT_DIR}" \
         mrsd.student_rollout_per_problem=8 \
-        mrsd.problems_per_step=8 \
+        mrsd.problems_per_step=32 \
+        mrsd.val_max_samples=-1 \
         mrsd.grpo_only=true \
         "$@" \
     2>&1 | tee "${LOG_FILE}"

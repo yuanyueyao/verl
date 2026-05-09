@@ -2,8 +2,8 @@
 RLSD Ray Trainer。
 
 继承 RayPPOTrainer，覆写 fit() 实现 RLSD 混合训练：
-  - SD 分支（dead zone）：student rollout 全部答错 → full-distribution clipped KL(p_ref || p_student)
-  - GRPO 分支（mixed rewards）：student rollout 有答对有答错 → 标准 clipped policy gradient
+  - SD 分支：本步对该题 k 条 student rollout 全部判错 → full-distribution clipped KL(p_ref || p_student)
+  - GRPO 分支：有对有错 → 标准 clipped policy gradient
 
 init_workers / _save_checkpoint / _load_checkpoint 全部复用官方实现。
 """
@@ -22,6 +22,7 @@ from tqdm import tqdm
 from verl import DataProto
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer, Role
+from verl.trainer.ppo.metric_utils import reduce_metrics
 from verl.utils.tracking import Tracking
 
 import sys
@@ -235,13 +236,11 @@ class MRSDTrainer(RayPPOTrainer):
     """
     RLSD Trainer：继承 RayPPOTrainer，覆写 fit()。
 
-    核心逻辑（per step）：
-      1. 从死区数据集中采样 problems
-      2. Student rollout（n_samples per problem）
-      3. 分流：
-         - 若 problem 的所有 rollout reward=0 → SD 分支
-         - 若 problem 的 rollout 有 mixed rewards → GRPO 分支
-      4. 分别构建 train batch，调用 update_actor
+    **模式**（``mrsd.grpo_only`` 与 ``mrsd.opsd_only`` 不能同时为 true；默认二者 false = SD+GRPO 混合）
+      - ``grpo_only``：mixed 走 GRPO；全错分支不跑 SD。
+      - ``opsd_only``：每题固定 1 次 rollout；**不判对错**、不更新 MRSDDataset 统计；每题必经 SD（特权 teacher）。题池始终为全集，无毕业语义。
+
+    **单步**：采样 problems → student rollout → 按上表分流 → ``update_actor``。
     """
 
     def __init__(self, *args, mrsd_dataset: Optional[MRSDDataset] = None, **kwargs):
@@ -251,12 +250,20 @@ class MRSDTrainer(RayPPOTrainer):
         mrsd_cfg = OmegaConf.select(self.config, "mrsd", default=OmegaConf.create({}))
         self.student_k = int(OmegaConf.select(mrsd_cfg, "student_rollout_per_problem", default=8))
         self.kl_clip = float(OmegaConf.select(mrsd_cfg, "kl_clip", default=10.0))
-        self.problems_per_step = int(OmegaConf.select(mrsd_cfg, "problems_per_step", default=8))
-        self.graduation_interval = int(OmegaConf.select(mrsd_cfg, "graduation_interval", default=100))
+        self.problems_per_step = int(OmegaConf.select(mrsd_cfg, "problems_per_step", default=32))
         self.max_prompt_len = int(OmegaConf.select(self.config, "data.max_prompt_length", default=2048))
         self.max_resp_len = int(OmegaConf.select(self.config, "data.max_response_length", default=3072))
-        # GRPO-Only 模式：跳过 SD 分支，死区题不产生梯度，仅用 mixed 题做 GRPO
+        # GRPO-Only：跳过 SD；OPSD-Only：仅无条件 SD，且关闭 GRPO / 判题统计
         self.grpo_only = bool(OmegaConf.select(mrsd_cfg, "grpo_only", default=False))
+        self.opsd_only = bool(OmegaConf.select(mrsd_cfg, "opsd_only", default=False))
+        if self.grpo_only and self.opsd_only:
+            raise ValueError("mrsd.grpo_only 与 mrsd.opsd_only 不能同时为 true")
+        if self.opsd_only:
+            if self.student_k != 1:
+                print(
+                    f"[MRSDTrainer] opsd_only=true：忽略 mrsd.student_rollout_per_problem={self.student_k}，强制为 1"
+                )
+            self.student_k = 1
 
     def init_workers(self):
         """
@@ -374,9 +381,8 @@ class MRSDTrainer(RayPPOTrainer):
     def _rlsd_step(self, problems: list[MRSDProblem]) -> dict:
         """
         RLSD 单步：
-          1. Student rollout
-          2. 分类：全错 → SD; mixed → GRPO; 全对 → skip
-          3. 分别 update
+          - opsd_only：每题 1 条 rollout → 无条件 SD；不调用 is_correct / 不写 MRSDDataset 统计。
+          - 否则：全错→SD；mixed→GRPO；全对跳过；并更新 MRSDDataset。
         """
         metrics = {}
         t0 = time.time()
@@ -394,49 +400,78 @@ class MRSDTrainer(RayPPOTrainer):
         grpo_msgs, grpo_resps, grpo_rewards, grpo_lp_indices, grpo_group_ids = [], [], [], [], []
 
         flat_idx = 0
-        for pi, (prob, resps) in enumerate(zip(problems, student_resps_grouped)):
-            correctness = [is_correct(r, prob.ground_truth) for r in resps]
-            n_correct = sum(correctness)
+        if self.opsd_only:
+            for _pi, (prob, resps) in enumerate(zip(problems, student_resps_grouped)):
+                r = resps[0]
+                sd_student_msgs.append(build_student_messages(prob.question))
+                sd_teacher_msgs.append(
+                    build_teacher_privileged_messages(
+                        prob.question,
+                        prob.ground_truth,
+                        prob.reference_solution or None,
+                    )
+                )
+                sd_resps.append(r)
+                sd_lp_indices.append(flat_idx)
+                flat_idx += 1
+        else:
+            for _pi, (prob, resps) in enumerate(zip(problems, student_resps_grouped)):
+                correctness = [is_correct(r, prob.ground_truth) for r in resps]
+                n_correct = sum(correctness)
 
-            if n_correct == 0:
-                # Dead zone → SD 分支：teacher 用特权 context (含 GT)
-                for ri, r in enumerate(resps):
-                    sd_student_msgs.append(build_student_messages(prob.question))
-                    sd_teacher_msgs.append(build_teacher_privileged_messages(prob.question, prob.ground_truth))
-                    sd_resps.append(r)
-                    sd_lp_indices.append(flat_idx + ri)
-            elif n_correct < len(resps):
-                # Mixed rewards → GRPO 分支
-                for ri, (r, c) in enumerate(zip(resps, correctness)):
-                    grpo_msgs.append(build_student_messages(prob.question))
-                    grpo_resps.append(r)
-                    grpo_rewards.append(1.0 if c else 0.0)
-                    grpo_lp_indices.append(flat_idx + ri)
-                    grpo_group_ids.append(pi)
-            # else: 全对 → 已经会做，不训练
+                if n_correct == 0:
+                    for ri, r in enumerate(resps):
+                        sd_student_msgs.append(build_student_messages(prob.question))
+                        sd_teacher_msgs.append(
+                            build_teacher_privileged_messages(
+                                prob.question,
+                                prob.ground_truth,
+                                prob.reference_solution or None,
+                            )
+                        )
+                        sd_resps.append(r)
+                        sd_lp_indices.append(flat_idx + ri)
+                elif n_correct < len(resps):
+                    for ri, (r, c) in enumerate(zip(resps, correctness)):
+                        grpo_msgs.append(build_student_messages(prob.question))
+                        grpo_resps.append(r)
+                        grpo_rewards.append(1.0 if c else 0.0)
+                        grpo_lp_indices.append(flat_idx + ri)
+                        grpo_group_ids.append(_pi)
 
-            # 更新 dataset 状态
-            self.mrsd_dataset.update_problem_stats(
-                prob.index,
-                new_wrong_trajs=[r for r, c in zip(resps, correctness) if not c],
-                n_correct=n_correct,
-                n_total=len(resps),
-            )
-            flat_idx += self.student_k
+                self.mrsd_dataset.update_problem_stats(
+                    prob.index,
+                    new_wrong_trajs=[r for r, c in zip(resps, correctness) if not c],
+                    n_correct=n_correct,
+                    n_total=len(resps),
+                )
+                flat_idx += self.student_k
 
         metrics["rlsd/n_sd_samples"] = float(len(sd_resps))
         metrics["rlsd/n_grpo_samples"] = float(len(grpo_resps))
         metrics["rlsd/n_problems"] = float(len(problems))
 
-        n_dead = sum(1 for prob, resps in zip(problems, student_resps_grouped)
-                     if all(not is_correct(r, prob.ground_truth) for r in resps))
-        n_mixed = sum(1 for prob, resps in zip(problems, student_resps_grouped)
-                      if 0 < sum(is_correct(r, prob.ground_truth) for r in resps) < len(resps))
-        n_solved = len(problems) - n_dead - n_mixed
-        metrics["rlsd/n_dead_zone"] = float(n_dead)
+        if self.opsd_only:
+            n_all_wrong = n_mixed = n_solved = 0
+            metrics["rlsd/opsd_no_dataset_reward_routing"] = 1.0
+        else:
+            n_all_wrong = sum(
+                1
+                for prob, resps in zip(problems, student_resps_grouped)
+                if all(not is_correct(r, prob.ground_truth) for r in resps)
+            )
+            n_mixed = sum(
+                1
+                for prob, resps in zip(problems, student_resps_grouped)
+                if 0 < sum(is_correct(r, prob.ground_truth) for r in resps) < len(resps)
+            )
+            n_solved = len(problems) - n_all_wrong - n_mixed
+
+        metrics["rlsd/n_all_wrong_problems"] = float(n_all_wrong)
         metrics["rlsd/n_mixed"] = float(n_mixed)
         metrics["rlsd/n_all_correct"] = float(n_solved)
         metrics["rlsd/grpo_only_mode"] = float(self.grpo_only)
+        metrics["rlsd/opsd_only_mode"] = float(self.opsd_only)
 
         # ── Response length 统计（全部 rollout）────────────────────
         resp_lens = all_resp_masks.sum(dim=-1).float()  # (total_samples,)
@@ -445,15 +480,32 @@ class MRSDTrainer(RayPPOTrainer):
         metrics["rollout/resp_len_max"]  = resp_lens.max().item()
 
         # 各分支的长度均值（便于对比 SD/GRPO rollout 长短差异）
-        if grpo_lp_indices:
+        # 默认 0，无对应样本的步骤在 wandb 仍有完整 key
+        metrics["rollout/grpo_resp_len_mean"] = 0.0
+        metrics["rollout/sd_resp_len_mean"] = 0.0
+        if grpo_lp_indices and not self.opsd_only:
             grpo_lens = resp_lens[torch.tensor(grpo_lp_indices, dtype=torch.long)]
             metrics["rollout/grpo_resp_len_mean"] = grpo_lens.mean().item()
         if sd_lp_indices and not self.grpo_only:
             sd_lens = resp_lens[torch.tensor(sd_lp_indices, dtype=torch.long)]
             metrics["rollout/sd_resp_len_mean"] = sd_lens.mean().item()
 
-        mode_tag = "grpo-only" if self.grpo_only else "rlsd"
-        print(f"  [{mode_tag}] problems={len(problems)}  dead={n_dead}  mixed={n_mixed}  solved={n_solved}")
+        if self.opsd_only:
+            mode_tag = "opsd-only"
+        elif self.grpo_only:
+            mode_tag = "grpo-only"
+        else:
+            mode_tag = "rlsd"
+        if self.opsd_only:
+            print(
+                f"  [{mode_tag}] problems={len(problems)}"
+                f"  (1 rollout → OPSD/sample, 全错/混合 计数不适用)"
+            )
+        else:
+            print(
+                f"  [{mode_tag}] problems={len(problems)}  "
+                f"all_wrong={n_all_wrong}  mixed={n_mixed}  all_correct={n_solved}"
+            )
         sys.stdout.flush()
 
         # ── Step 3: SD 分支训练（GRPO-Only 模式下跳过）────────────────
@@ -471,12 +523,17 @@ class MRSDTrainer(RayPPOTrainer):
             sd_padded, pad_size = pad_dataproto_to_divisor(sd_data, self.actor_rollout_wg.world_size)
             sd_out_padded = self.actor_rollout_wg.update_actor(sd_padded)
             sd_out = unpad_dataproto(sd_out_padded, pad_size=pad_size)
-            sd_metrics = sd_out.meta_info.get("metrics", {})
-            for k, v in sd_metrics.items():
-                metrics[k] = v
+            sd_metrics = reduce_metrics(sd_out.meta_info.get("metrics", {}))
+            metrics.update(sd_metrics)
 
-        # ── Step 4: GRPO 分支训练 ────────────────────────────────────
-        if grpo_resps:
+        # ── Step 4: GRPO 分支训练（OPSD-Only 永不进入）────────────────
+        # 预设默认值：GRPO 未触发的步骤仍能在 wandb 看到完整 key
+        metrics["actor/entropy"] = 0.0
+        metrics["actor/kl_loss"] = 0.0
+        metrics["actor/kl_coef"] = float(OmegaConf.select(
+            self.config, "actor_rollout_ref.actor.kl_loss_coef", default=0.0
+        ))
+        if grpo_resps and not self.opsd_only:
             lp_indices = torch.tensor(grpo_lp_indices, dtype=torch.long)
 
             # 取出对应的原始 token ids 和 response mask
@@ -551,130 +608,248 @@ class MRSDTrainer(RayPPOTrainer):
             grpo_padded, pad_size = pad_dataproto_to_divisor(grpo_data, self.actor_rollout_wg.world_size)
             grpo_out_padded = self.actor_rollout_wg.update_actor(grpo_padded)
             grpo_out = unpad_dataproto(grpo_out_padded, pad_size=pad_size)
-            grpo_metrics = grpo_out.meta_info.get("metrics", {})
-            for k, v in grpo_metrics.items():
-                metrics[k] = v
+            grpo_metrics = reduce_metrics(grpo_out.meta_info.get("metrics", {}))
+            metrics.update(grpo_metrics)
 
         metrics["rlsd/step_time_s"] = time.time() - t0
         return metrics
 
     # ──────────────────────────────────────────────────────────────────
-    # 验证（pass@1，仅 data.val_files parquet）
+    # 验证（data.val_files parquet；AIME*: acc@n / avg@n 随机采样（同值双键）；其它: greedy pass@1）
     # ──────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _eval_val_parquet_path(val_files):
-        """从 config.data.val_files 得到单个 parquet 路径；暂不合并多路径。"""
+    def _normalize_val_parquet_paths(val_files):
+        """将 ``data.val_files`` 规范为若干 .parquet 路径列表（支持单路径或列表）。"""
         from omegaconf import ListConfig
 
         if val_files is None:
-            return None
+            return []
         if isinstance(val_files, (list, tuple, ListConfig)):
-            if len(val_files) == 0:
-                return None
-            if len(val_files) > 1:
-                print(
-                    f"[eval] WARN: data.val_files 含 {len(val_files)} 个路径，暂不合并 parquet，仅用第一个。"
-                )
-            val_files = val_files[0]
-        path = str(val_files).strip()
-        return path if path else None
+            raw = [str(p).strip() for p in val_files]
+        else:
+            raw = [str(val_files).strip()]
+        paths = [p for p in raw if p]
+        bad = [p for p in paths if not p.endswith(".parquet")]
+        if bad:
+            raise ValueError(f"[eval] 验证集仅支持 .parquet，收到: {bad}")
+        return paths
+
+    @staticmethod
+    def _eval_benchmark_is_aime(bench: str) -> bool:
+        return "aime" in bench.lower()
 
     def _evaluate(self, step: int, logger: Tracking) -> dict:
-        """在 data.val_files 指定的 parquet 上跑 pass@1（greedy），样本追加写入 eval_samples.jsonl。"""
+        """在多份 val parquet 上评测；文件名含 ``aime`` 的基准每题随机采样 n 次（``mrsd.eval_aime_avg_at_n``），
+        指标为「每题正确率均值」（macro）；同时写入 ``acc_at_{n}`` 与 ``avg_at_{n}`` 两个键，数值相同。"""
         import json
 
         val_spec = OmegaConf.select(self.config, "data.val_files", default=None)
-        val_path = self._eval_val_parquet_path(val_spec)
-        if not val_path:
+        val_paths = self._normalize_val_parquet_paths(val_spec)
+        if not val_paths:
             return {}
 
-        if not val_path.endswith(".parquet"):
-            raise ValueError(
-                f"[eval] 当前仅支持 parquet 验证集（data.val_files），收到: {val_path!r}"
-            )
-
-        print(f"\n[eval] step={step}  验证集(parquet,data.val_files): {val_path}")
-        # mrsd.val_max_samples：正整数=最多评几条；<=0 或 YAML 显式 null=整份 parquet（缺省 64）
         raw_max = OmegaConf.select(self.config, "mrsd.val_max_samples", default=64)
         if raw_max is None:
             max_val_cap = -1
         else:
             max_val_cap = int(raw_max)
-        df = pd.read_parquet(val_path)
-        n_all = len(df)
-        if max_val_cap > 0:
-            df = df.head(max_val_cap)
-        print(
-            f"[eval] 评测行数: {len(df)}/{n_all}"
-            + ("" if max_val_cap > 0 else "  (全量)")
-            + f"  [mrsd.val_max_samples={raw_max}]"
-        )
 
-        messages_list = []
-        ground_truths = []
-        questions = []
-        for _, row in df.iterrows():
-            raw_prompt = row["prompt"]
-            msgs = raw_prompt if isinstance(raw_prompt, list) else list(raw_prompt)
-            gt = row["reward_model"]["ground_truth"]
-            question = question_from_verl_prompt(msgs)
-            questions.append(question)
-            messages_list.append(build_student_messages(question))
-            ground_truths.append(gt)
-
-        gen_batch = _build_gen_batch(self.tokenizer, messages_list, self.max_prompt_len)
-        gen_padded, pad_size = pad_dataproto_to_divisor(gen_batch, self.actor_rollout_wg.world_size)
-        gen_padded.meta_info["do_sample"] = False
-        gen_padded.meta_info["temperature"] = 0.0
-        gen_padded.meta_info["top_p"] = 1.0
-        gen_padded.meta_info["top_k"] = 1
-        out_padded = self.actor_rollout_wg.generate_sequences(gen_padded)
-        out = unpad_dataproto(out_padded, pad_size=pad_size)
-
-        responses = self.tokenizer.batch_decode(
-            out.batch["responses"], skip_special_tokens=True, clean_up_tokenization_spaces=False
-        )
-
-        from recipe.RLSD.rlsd.verifier import extract_boxed_answer
-
-        # 样本保存路径：<default_local_dir>/eval_samples.jsonl
         ckpt_dir = Path(self.config.trainer.default_local_dir)
         ckpt_dir.mkdir(parents=True, exist_ok=True)
         sample_file = ckpt_dir / "eval_samples.jsonl"
 
-        n_correct = 0
-        n_examine = min(3, len(responses))
-        with open(sample_file, "a") as fout:
-            for i, (r, gt, q) in enumerate(zip(responses, ground_truths, questions)):
-                correct = is_correct(r, gt)
-                extracted = extract_boxed_answer(r) or ""
-                if correct:
-                    n_correct += 1
-                if i < n_examine:
-                    status = "+" if correct else "-"
-                    print(f"  [{status}] Q{i} gt={gt}  pred={extracted or '(none)'}")
-                    sys.stdout.flush()
-                fout.write(json.dumps({
-                    "step": step,
-                    "idx": i,
-                    "question": q,
-                    "ground_truth": gt,
-                    "response": r,
-                    "extracted": extracted,
-                    "correct": correct,
-                }, ensure_ascii=False) + "\n")
+        merged: dict[str, float] = {}
+        macro_scores: list[float] = []
 
-        pass1 = n_correct / max(len(ground_truths), 1)
-        metrics = {
-            "val/pass@1": pass1,
-            "val/n_correct": float(n_correct),
-            "val/n_total": float(len(ground_truths)),
-        }
-        logger.log(data=metrics, step=step)
-        print(f"[eval] step={step}  pass@1={pass1:.3f}  ({n_correct}/{len(ground_truths)})")
+        benchmark_leaf: dict[str, str] = {}
+
+        from recipe.RLSD.rlsd.verifier import extract_boxed_answer
+
+        def _stripped_benchmark_stem(val_path: str) -> str:
+            b = Path(val_path).stem
+            return b[len("val_") :] if b.startswith("val_") else b
+
+        with open(sample_file, "a") as fout:
+            for val_path in val_paths:
+                bench = _stripped_benchmark_stem(val_path)
+
+                df = pd.read_parquet(val_path)
+                n_all = len(df)
+                if max_val_cap > 0:
+                    df = df.head(max_val_cap)
+                print(
+                    f"\n[eval] step={step}  benchmark={bench}  file={val_path}\n"
+                    f"[eval] 评测行数: {len(df)}/{n_all}"
+                    + ("" if max_val_cap > 0 else "  (全量)")
+                    + f"  [mrsd.val_max_samples={raw_max}]"
+                )
+
+                messages_list = []
+                ground_truths = []
+                questions = []
+                for _, row in df.iterrows():
+                    raw_prompt = row["prompt"]
+                    msgs = raw_prompt if isinstance(raw_prompt, list) else list(raw_prompt)
+                    rm = row["reward_model"]
+                    gt = rm["ground_truth"] if isinstance(rm, dict) else dict(rm)["ground_truth"]
+                    question = question_from_verl_prompt(msgs)
+                    questions.append(question)
+                    messages_list.append(build_student_messages(question))
+                    ground_truths.append(gt)
+
+                n_probs = len(ground_truths)
+                is_aime = self._eval_benchmark_is_aime(bench)
+                k_aime = int(OmegaConf.select(self.config, "mrsd.eval_aime_avg_at_n", default=12))
+
+                if is_aime and k_aime > 1:
+                    temp_ev = float(OmegaConf.select(self.config, "mrsd.eval_aime_temperature", default=1.0))
+                    top_p_ev = float(OmegaConf.select(self.config, "mrsd.eval_aime_top_p", default=0.95))
+                    top_k_ev = int(OmegaConf.select(self.config, "mrsd.eval_aime_top_k", default=-1))
+                    expanded = [msg for msg in messages_list for _ in range(k_aime)]
+                    gen_batch = _build_gen_batch(self.tokenizer, expanded, self.max_prompt_len)
+                    gen_padded, pad_size = pad_dataproto_to_divisor(gen_batch, self.actor_rollout_wg.world_size)
+                    gen_padded.meta_info["do_sample"] = True
+                    gen_padded.meta_info["temperature"] = temp_ev
+                    gen_padded.meta_info["top_p"] = top_p_ev
+                    gen_padded.meta_info["top_k"] = top_k_ev
+                    out_padded = self.actor_rollout_wg.generate_sequences(gen_padded)
+                    out = unpad_dataproto(out_padded, pad_size=pad_size)
+                    responses = self.tokenizer.batch_decode(
+                        out.batch["responses"], skip_special_tokens=True, clean_up_tokenization_spaces=False
+                    )
+
+                    # 宏平均：每题 score = (该题 n 次采样中判对次数)/n，再在题上平均；与「全体 trial 微平均」一般不等。
+                    mleaf_avg = f"avg_at_{k_aime}"
+                    mleaf_acc = f"acc_at_{k_aime}"
+                    benchmark_leaf[bench] = mleaf_acc
+                    per_q_frac_sum = 0.0
+                    total_correct_trials = 0
+                    examine_q = min(1, n_probs)
+                    for qi in range(n_probs):
+                        chunk = responses[qi * k_aime : (qi + 1) * k_aime]
+                        gt = ground_truths[qi]
+                        qtxt = questions[qi]
+                        q_correct = 0
+                        for trial, r in enumerate(chunk):
+                            correct = is_correct(r, gt)
+                            extracted = extract_boxed_answer(r) or ""
+                            if correct:
+                                q_correct += 1
+                                total_correct_trials += 1
+                            if qi < examine_q and trial < min(3, k_aime):
+                                status = "+" if correct else "-"
+                                print(f"  [{bench}][Q{qi} t{trial}{status}] gt={gt}  pred={extracted or '(none)'}")
+                                sys.stdout.flush()
+                            fout.write(
+                                json.dumps(
+                                    {
+                                        "step": step,
+                                        "benchmark": bench,
+                                        "metric": mleaf_acc,
+                                        "problem_idx": qi,
+                                        "trial": trial,
+                                        "question": qtxt,
+                                        "ground_truth": gt,
+                                        "response": r,
+                                        "extracted": extracted,
+                                        "correct": correct,
+                                    },
+                                    ensure_ascii=False,
+                                )
+                                + "\n"
+                            )
+                        frac_q = q_correct / k_aime
+                        per_q_frac_sum += frac_q
+
+                    avg_metric = per_q_frac_sum / max(n_probs, 1)
+                    macro_scores.append(avg_metric)
+                    merged[f"val/{bench}/{mleaf_acc}"] = avg_metric
+                    merged[f"val/{bench}/{mleaf_avg}"] = avg_metric
+                    merged[f"val/{bench}/n_correct_trials"] = float(total_correct_trials)
+                    merged[f"val/{bench}/n_total_trials"] = float(n_probs * k_aime)
+                    merged[f"val/{bench}/n_questions"] = float(n_probs)
+                    micro_trial_acc = total_correct_trials / max(n_probs * k_aime, 1)
+                    merged[f"val/{bench}/trial_micro_acc"] = float(micro_trial_acc)
+                    print(
+                        f"[eval] step={step}  {bench}  acc@{k_aime}=avg@{k_aime}={avg_metric:.3f} "
+                        f"(macro；trial 微平均={micro_trial_acc:.3f})  "
+                        f"判对 trial {total_correct_trials}/{n_probs * k_aime}"
+                    )
+                else:
+                    gen_batch = _build_gen_batch(self.tokenizer, messages_list, self.max_prompt_len)
+                    gen_padded, pad_size = pad_dataproto_to_divisor(gen_batch, self.actor_rollout_wg.world_size)
+                    gen_padded.meta_info["do_sample"] = False
+                    gen_padded.meta_info["temperature"] = 0.0
+                    gen_padded.meta_info["top_p"] = 1.0
+                    gen_padded.meta_info["top_k"] = 1
+                    out_padded = self.actor_rollout_wg.generate_sequences(gen_padded)
+                    out = unpad_dataproto(out_padded, pad_size=pad_size)
+
+                    responses = self.tokenizer.batch_decode(
+                        out.batch["responses"], skip_special_tokens=True, clean_up_tokenization_spaces=False
+                    )
+
+                    benchmark_leaf[bench] = "pass@1"
+                    n_correct = 0
+                    n_examine = min(3, len(responses))
+                    for i, (r, gt, q) in enumerate(zip(responses, ground_truths, questions)):
+                        correct = is_correct(r, gt)
+                        extracted = extract_boxed_answer(r) or ""
+                        if correct:
+                            n_correct += 1
+                        if i < n_examine:
+                            status = "+" if correct else "-"
+                            print(f"  [{bench}][{status}] Q{i} gt={gt}  pred={extracted or '(none)'}")
+                            sys.stdout.flush()
+                        fout.write(
+                            json.dumps(
+                                {
+                                    "step": step,
+                                    "benchmark": bench,
+                                    "metric": "pass@1",
+                                    "problem_idx": i,
+                                    "trial": 0,
+                                    "question": q,
+                                    "ground_truth": gt,
+                                    "response": r,
+                                    "extracted": extracted,
+                                    "correct": correct,
+                                },
+                                ensure_ascii=False,
+                            )
+                            + "\n"
+                        )
+
+                    pass1 = n_correct / max(len(ground_truths), 1)
+                    macro_scores.append(pass1)
+                    n_tot = float(len(ground_truths))
+                    merged[f"val/{bench}/pass@1"] = pass1
+                    merged[f"val/{bench}/n_correct"] = float(n_correct)
+                    merged[f"val/{bench}/n_total"] = n_tot
+                    print(f"[eval] step={step}  {bench}  pass@1={pass1:.3f}  ({n_correct}/{len(ground_truths)})")
+
+        if len(val_paths) > 1:
+            # 各 basename 评测主指标的简单平均（命名沿用；含 MATH pass@1 与 AIME acc@n/avg@n 混比时仅作粗参考）
+            merged["val/pass@1_macro_mean"] = sum(macro_scores) / len(macro_scores)
+        else:
+            b = _stripped_benchmark_stem(val_paths[0])
+            leaf = benchmark_leaf[b]
+            if leaf == "pass@1":
+                merged["val/pass@1"] = merged[f"val/{b}/pass@1"]
+                merged["val/n_correct"] = merged[f"val/{b}/n_correct"]
+                merged["val/n_total"] = merged[f"val/{b}/n_total"]
+            else:
+                merged[f"val/{leaf}"] = merged[f"val/{b}/{leaf}"]
+                if leaf.startswith("acc_at_"):
+                    legacy_leaf = leaf.replace("acc_at_", "avg_at_", 1)
+                    merged[f"val/{legacy_leaf}"] = merged[f"val/{b}/{legacy_leaf}"]
+                merged["val/n_correct_trials"] = merged[f"val/{b}/n_correct_trials"]
+                merged["val/n_total_trials"] = merged[f"val/{b}/n_total_trials"]
+                merged["val/n_questions_eval"] = merged[f"val/{b}/n_questions"]
+        logger.log(data=merged, step=step)
         print(f"[eval] 样本已追加到 {sample_file}\n")
-        return metrics
+        return merged
 
     # ──────────────────────────────────────────────────────────────────
     # 主训练循环
@@ -698,8 +873,11 @@ class MRSDTrainer(RayPPOTrainer):
         self.global_steps = 0
         self._load_checkpoint()
 
-        print(f"\n[RLSDTrainer] 开始  total_steps={total_steps}  active={self.mrsd_dataset.n_active}")
-        self._evaluate(step=0, logger=logger)
+        print(f"\n[RLSDTrainer] 开始  total_steps={total_steps}  n_problems={len(self.mrsd_dataset)}")
+        if not bool(OmegaConf.select(self.config, "mrsd.skip_initial_eval", default=False)):
+            self._evaluate(step=0, logger=logger)
+        else:
+            print("[RLSDTrainer] 已跳过初试验证（mrsd.skip_initial_eval=true）")
 
         progress = tqdm(total=total_steps, initial=self.global_steps, desc="RLSD")
 
@@ -707,10 +885,6 @@ class MRSDTrainer(RayPPOTrainer):
             return float(v[0]) if isinstance(v, (list, tuple)) else float(v)
 
         while self.global_steps < total_steps:
-            if self.mrsd_dataset.n_active == 0:
-                print("[RLSDTrainer] 所有死区题目已毕业，提前结束")
-                break
-
             batch = self.mrsd_dataset.sample_batch(self.problems_per_step)
             if not batch:
                 continue
@@ -718,21 +892,18 @@ class MRSDTrainer(RayPPOTrainer):
             step_metrics = self._rlsd_step(batch)
             self.global_steps += 1
             step_metrics["train/global_step"] = float(self.global_steps)
-            step_metrics["train/n_active"] = float(self.mrsd_dataset.n_active)
-            step_metrics["train/n_graduated"] = float(self.mrsd_dataset.n_graduated)
-
             logger.log(data=step_metrics, step=self.global_steps)
             progress.update(1)
-            progress.set_postfix({
-                "sd": int(_scalar(step_metrics.get("rlsd/n_sd_samples", 0))),
-                "grpo": int(_scalar(step_metrics.get("rlsd/n_grpo_samples", 0))),
-                "dead": int(_scalar(step_metrics.get("rlsd/n_dead_zone", 0))),
-                "active": self.mrsd_dataset.n_active,
-            })
-
-            newly = self.mrsd_dataset.maybe_graduate_problems()
-            if newly:
-                logger.log({"train/newly_graduated": len(newly)}, step=self.global_steps)
+            if self.opsd_only:
+                progress.set_postfix({
+                    "sd": int(_scalar(step_metrics.get("rlsd/n_sd_samples", 0))),
+                })
+            else:
+                progress.set_postfix({
+                    "sd": int(_scalar(step_metrics.get("rlsd/n_sd_samples", 0))),
+                    "grpo": int(_scalar(step_metrics.get("rlsd/n_grpo_samples", 0))),
+                    "all_wrong": int(_scalar(step_metrics.get("rlsd/n_all_wrong_problems", 0))),
+                })
 
             if self.global_steps % test_freq == 0:
                 self._evaluate(step=self.global_steps, logger=logger)
@@ -746,4 +917,4 @@ class MRSDTrainer(RayPPOTrainer):
         self.mrsd_dataset.save_state(str(ckpt_dir / f"rlsd_dataset_final.json"))
 
         stats = self.mrsd_dataset.stats()
-        print(f"\n[RLSDTrainer] 完成  毕业: {stats['n_graduated']}/{stats['n_total']}  死区: {stats['n_active']}")
+        print(f"\n[RLSDTrainer] 完成  训练题池: {stats['n_total']} 道")
