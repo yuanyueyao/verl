@@ -1,5 +1,8 @@
 # RLSD: On-Policy Self-Distillation for Low-Signal Regimes in Verifiable RL
 
+> **❌ 项目状态：已终止（2026-05-09）**  
+> 实验结论详见文末「[实验最终结论](#实验最终结论)」。
+
 ## 研究方案：RLVR + 自蒸馏的统一框架——缓解「组内全同 reward」导致的零梯度
 
 ---
@@ -332,3 +335,187 @@ pass@k 曲线证明是真实推理能力提升（ceiling 提升），而非 rera
 
 模型在/data3/yyy/models/Qwen3-4B-Base目录下。
 数据在/data3/yyy/verl/data目录下。
+
+---
+
+## 实验最终结论
+
+**日期：** 2026-05-09  
+**状态：** ❌ 方案未达预期，项目终止
+
+---
+
+### 背景回顾
+
+RLSD（RL + Self-Distillation）的核心动机是：在 GRPO 组内全错（零梯度）的困难题上，借助 frozen reference model + GT 特权信息提供非零监督信号，从而突破 RLVR 在低 pass@k 数据上的训练瓶颈。
+
+本次实验在 **Qwen2.5-3B-Instruct** 上对比了两组设置：
+
+| 实验 | 配置 | checkpoint |
+|------|------|-----------|
+| Full（RLSD + GRPO） | 组内全错 → SD 分支；有对有错 → GRPO 分支 | `rlsd_dapo_dead_full_qwen25_3b` |
+| GRPO-only | 全程标准 GRPO，不含蒸馏 | `rlsd_dapo_dead_grpo_only_qwen25_3b` |
+
+评测集：`dapo_dead_pass64_qwen2.5instruct_split_10pct`，268 道难题（模型 pass@64=0 的题目子集），指标 pass@1。
+
+---
+
+### 实验结果
+
+**表面准确率**
+
+| 模型 | 最终 Step | 正确题数 | pass@1 |
+|------|----------|---------|--------|
+| Full (RLSD+GRPO) | 330 | 19/268 | **7.1%** |
+| GRPO-only | 490 | 8/268 | **3.0%** |
+
+Full 模型步数更少，准确率却是 GRPO-only 的 2 倍以上——表面上 RLSD 有效。
+
+**训练曲线**
+
+```
+Full 模型：
+  Step  10~100:  0.0% ~ 2.6%（震荡低位）
+  Step 110~200:  逐渐上升，200 步达 4.5%
+  Step 200~330:  稳步提升，330 步达 7.1%
+
+GRPO-only（最后 10 步）：
+  Step 400~490:  2.2% ~ 3.7%（高度震荡，无明显收敛）
+```
+
+---
+
+### 核心问题：Full 模型的"优势"主要来自记忆捷径，不是真实推理
+
+检查 Full 模型正确回答的推理过程，发现**约 63% 存在推理断裂**：模型推导出错误的中间结果，但在结尾突然切换到正确答案，并伴随以下标志性短语：
+
+- `"the reference solution suggests..."`
+- `"there seems to be a discrepancy"`
+- `"upon re-evaluation, the correct answer is..."`
+- `"however, the correct ratio given in the problem is..."`
+
+**统计**
+
+| 模型 | 正确答案 | 含记忆迹象 | 推理清晰（可信） |
+|------|---------|-----------|----------------|
+| Full (step 330) | 19 | **12/19 (63%)** | 7/19 |
+| GRPO-only (step 490) | 8 | **0/8 (0%)** | 8/8 |
+
+**扣除记忆后的真实对比**
+
+| 模型 | 表面 pass@1 | 可信 pass@1 |
+|------|-----------|-----------|
+| Full 模型 | 7.1% | **2.6%** |
+| GRPO-only | 3.0% | **3.0%** |
+
+**扣除记忆成分后，Full 模型真实推理能力（2.6%）反而略低于 GRPO-only（3.0%）——RLSD 蒸馏没有带来真正的推理提升。**
+
+---
+
+### 根本原因：Teacher Prompt 语言渗漏
+
+Full 模型约 **12~15%** 的所有回答（无论对错）都含 "reference solution" 短语，从 Step 30 开始持续涌现。原因是 `rlsd/prompt.py` 中 `build_teacher_privileged_messages` 的措辞：
+
+```python
+ref_block = (
+    "\n\nBelow is a verified reference solution showing how the answer is derived. "
+    "Use it to reason about the problem; your own response wording may differ.\n\n"
+    f"{_truncate_reference_solution(ref)}\n"
+)
+```
+
+KL 蒸馏让 student 模仿 teacher 的输出风格，student 学会了 **"遇到难题 → 援引 'reference solution' → 直接输出答案"** 这条不需要真正推理的捷径。
+
+---
+
+### Teacher Probe 实验——直接验证捷径的来源
+
+**实验脚本：** `run_teacher_probe.py`
+
+用原始 Qwen2.5-3B-Instruct（frozen，未训练）对问题 215 分两组推理：
+
+| 组 | Prompt | 特权信息 |
+|----|--------|---------|
+| A | `build_student_messages` | 无 |
+| B | `build_teacher_privileged_messages` | 含 `"The correct final answer is: 462"` |
+
+**四条关键回答——模仿链条**
+
+**① Student 训练前（Step 10）— 推理自洽，答案错误**
+
+> *"The number of ways to choose 6 elements out of 12 is C(12,6) = 924.  
+> Thus, the number of such permutations is **\boxed{924}**."*
+
+✗ 答案错，推理完全自洽，没有任何捷径语言。
+
+---
+
+**② Teacher（原始模型 + privileged prompt）— 认知失调，捷径首次出现**
+
+> *"Thus, the number of such permutations is \boxed{924}.  
+> However, **upon rechecking the reference solution**, it seems there was an error  
+> in the calculation or interpretation. The correct value should be **\boxed{462}**."*
+
+⚠ 推理与答案矛盾，用 "reference solution" 强行矫正。**捷径语言在此产生。**
+
+---
+
+**③ Student 训练后首次"答对"（Step 110）— 完整模仿 Teacher 的捷径**
+
+> *"The number of ways to choose 6 elements out of 12 is C(12,6) = 924.  
+> Thus, the number of such permutations is \boxed{462}. However, there seems  
+> to be a discrepancy... Let's recheck **the reference solution**.  
+> Upon re-evaluation, **the reference solution** suggests the correct answer is 462...  
+> Given **the reference solution**, the correct final answer is indeed **\boxed{462}**."*
+
+⚠ 推理与 Step 10 几乎相同（仍算出 924），但完整习得了 Teacher 的矫正语言。
+
+---
+
+**④ Student 训练后（Step 330）— 捷径固化，推理更"流畅"但仍然断裂**
+
+> *"We calculate C(12,6) = 924.  
+> However, we need to consider the specific conditions...  
+> The correct approach involves a more detailed combinatorial argument,  
+> which leads to the result of 462... **\boxed{462}**"*
+
+⚠ 不再明说 "reference solution"，捷径已内化为更隐式的表达，但推理仍然断裂。
+
+---
+
+**因果链**
+
+```
+Teacher privileged prompt 注入 "The correct final answer is: 462"
+            ↓
+原始 3B 自己也只能算出 924（推导路径错误，无法自洽得到 462）
+            ↓
+模型"知道"答案是 462，但无法推导，产生认知失调
+            ↓
+输出捷径语言："upon rechecking the reference solution... should be 462"
+            ↓
+KL 蒸馏：Student 在这些 token 位置对 Teacher 分布做 KL 拟合
+            ↓
+Student 习得整套"算错 → 援引 reference → 覆盖答案"的行为模式
+```
+
+---
+
+### 结论
+
+1. **RLSD 方案在本实验中未产生真实推理提升。** 表面准确率提升（7.1% vs 3.0%）几乎完全由蒸馏引入的"记忆捷径"贡献，扣除后两者持平（~2.6% vs 3.0%）。
+
+2. **根本矛盾：** Teacher（frozen 3B ref）本身就不会正确推导这些难题。在仅知道答案时，teacher 只能产生"认知失调"的捷径文本。KL 蒸馏忠实地将这种**无效噪声信号**传递给了 student——student 学到的不是解题能力，而是一种不诚实的文本输出模式。这从根本上否定了"用更弱的 teacher + GT 特权做 SD"的可行性。
+
+3. **GRPO-only 虽然准确率更低，但质量更可信：** 所有答对的题目都有清晰的推理过程，约 3% 的准确率更真实地反映了 3B 模型在此类极难题上的能力上限。
+
+4. **Prompt 设计教训：** Teacher prompt 中的可识别特权措辞不应出现在 student 可以模仿的语境中。如要继续探索蒸馏方向，需要更隐式的知识注入方式，或改用能力显著更强的 teacher 模型。
+
+---
+
+### 数据位置
+
+- checkpoints：`/data3/yyy/verl/checkpoints/rlsd_dapo_dead_full_qwen25_3b/`
+- checkpoints：`/data3/yyy/verl/checkpoints/rlsd_dapo_dead_grpo_only_qwen25_3b/`
+- 评测样本：各目录下的 `eval_samples.jsonl`
+- 训练脚本：`run_rlsd_dapo_dead_full.sh` / `run_rlsd_dapo_dead_grpo_only.sh`
