@@ -265,7 +265,17 @@ class DataParallelPPOActor(BasePPOActor):
                     logits = logits[:, -response_length - 1 : -1, :]  # (bsz, response_length, vocab_size)
                     log_probs = logprobs_from_logits(logits, micro_batch["responses"])
                     if calculate_entropy:
+                        ## raw:
                         entropy = verl_F.entropy_from_logits(logits)  # (bsz, response_length)
+
+
+                        # # `entropy_from_logits` does softmax on (bsz, T, V) and materializes a full prob tensor.
+                        # # `compute_log_prob` always requests entropy (fsdp_workers), which OOMs for long T and large V.
+                        # # Flatten to (bsz*T, V) and chunk along positions — same per-token entropy, bounded peak VRAM.
+                        # bsz, resp_len, _ = logits.shape
+                        # logits_flat = logits.reshape(bsz * resp_len, -1)
+                        # entropy_flat = verl_F.entropy_from_logits_with_chunking(logits_flat, chunk_size=128)
+                        # entropy = entropy_flat.reshape(bsz, resp_len)
 
             return entropy, log_probs
 

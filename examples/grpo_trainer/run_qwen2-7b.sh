@@ -3,6 +3,18 @@ set -x
 # If you are using vllm<=0.6.3, you might need to set the following environment variable to avoid bugs:
 # export VLLM_ATTENTION_BACKEND=XFORMERS
 
+# ── 环境设置 ────────────────────────────────────────────────────────────────
+export CUDA_HOME=/usr/local/cuda
+export PATH=/usr/local/cuda/bin:$PATH
+export TORCH_COMPILE_DISABLE=1
+export VLLM_LOGGING_LEVEL=WARNING
+export NCCL_DEBUG=WARN
+export CUDA_VISIBLE_DEVICES=4,5,6,7
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+CONDA_ENV=verl
+
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files=$HOME/data/gsm8k/train.parquet \
@@ -38,7 +50,8 @@ python3 -m verl.trainer.main_ppo \
     trainer.logger=['console','wandb'] \
     trainer.project_name='rlsd' \
     trainer.experiment_name='qwen2_5_3b_grpo_gsm8k' \
-    trainer.n_gpus_per_node=8 \
+    trainer.resume_mode=disable \
+    trainer.n_gpus_per_node=4 \
     trainer.nnodes=1 \
     trainer.save_freq=100 \
     trainer.test_freq=10 \

@@ -145,7 +145,7 @@ class TaskRunner:
 
         from verl.workers.reward_manager import NaiveRewardManager
         from verl.utils.dataset.rl_dataset import collate_fn
-        from recipe.my_project.val_b_compute_score import val_b_compute_score
+        from recipe.math_challenger_solver_judge.val_b_compute_score import val_b_compute_score
 
         val_reward_fn = NaiveRewardManager(
             tokenizer=tokenizer_B,
