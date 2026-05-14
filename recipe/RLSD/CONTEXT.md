@@ -184,15 +184,6 @@ EOF
 
 ## 七、其他重要信息
 
-### 代理
-
-服务器上有 clash 代理运行在 `127.0.0.1:7890`：
-```bash
-export HTTP_PROXY=http://127.0.0.1:7890
-export HTTPS_PROXY=http://127.0.0.1:7890
-```
-当前选中香港节点，Google/GitHub/YouTube 都通。
-
 ### GPU 状态
 
 - gpu-node13 (当前): 8×A800-80GB，全部被 naive OPSD 占用
