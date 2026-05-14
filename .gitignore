@@ -129,3 +129,4 @@ outputs
 checkpoint_A/
 checkpoint_A_old/
 checkpoint_B/
+recipe/entropy_vis/entropy_all_models.json
