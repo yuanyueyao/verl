@@ -1,9 +1,6 @@
 #!/bin/bash
 # RLSD 训练启动脚本（8×A800）
 # 用法：bash recipe/RLSD/run_rlsd.sh [额外 hydra overrides]
-#
-# GRPO 超参与 run_grpo_only.sh 完全一致（use_kl_loss / kl_loss_coef / clip_ratio 等），
-# 唯一区别是 RLSD 启用 SD 分支（mrsd.grpo_only=false），对照实验仅变 SD 有无。
 
 set -euo pipefail
 
@@ -25,33 +22,8 @@ CONDA_ENV=verl
 
 # ── 默认参数 ────────────────────────────────────────────────────────────────
 MODEL_PATH=/data3/yyy/models/Qwen2.5-3B-Instruct
-DATA_DIR=/data3/yyy/verl/data/rlsd
+TRAIN_DATA=/data3/yyy/verl/data/Openthoughts_math_30k_opsd/data/train.parquet
 CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd
-
-MRSD_PROBLEMS_PATH="/data3/yyy/verl/data/rlsd/pass_at_k_pass1_resp8192_20260501_095948_dead_zone.jsonl"
-
-# 问题文件选择逻辑
-if [ -n "${MRSD_PROBLEMS_PATH:-}" ]; then
-    if [ ! -f "${MRSD_PROBLEMS_PATH}" ]; then
-        echo "[ERROR] MRSD_PROBLEMS_PATH 文件不存在: ${MRSD_PROBLEMS_PATH}"
-        exit 1
-    fi
-    PROBLEMS_PATH="${MRSD_PROBLEMS_PATH}"
-    echo "[INFO] 使用 MRSD_PROBLEMS_PATH: ${PROBLEMS_PATH}"
-elif [ -f "${DATA_DIR}/dead_zone_verified.jsonl" ]; then
-    PROBLEMS_PATH="${DATA_DIR}/dead_zone_verified.jsonl"
-    echo "[INFO] 使用 math_verify 复核后的题池 jsonl: ${PROBLEMS_PATH}"
-elif [ -f "${DATA_DIR}/dead_zone_phase_a.jsonl" ]; then
-    PROBLEMS_PATH="${DATA_DIR}/dead_zone_phase_a.jsonl"
-elif [ -f "${DATA_DIR}/dead_zone_problems.jsonl" ]; then
-    PROBLEMS_PATH="${DATA_DIR}/dead_zone_problems.jsonl"
-elif [ -f "${DATA_DIR}/pass_at_k_results.jsonl" ]; then
-    PROBLEMS_PATH="${DATA_DIR}/pass_at_k_results.jsonl"
-    echo "[WARNING] 回退到 pass_at_k_results.jsonl"
-else
-    echo "[ERROR] 找不到问题文件，请先运行诊断实验"
-    exit 1
-fi
 
 # ── 日志目录 ────────────────────────────────────────────────────────────────
 LOG_DIR="${VERL_ROOT}/logs/rlsd"
@@ -62,7 +34,7 @@ LOG_FILE="${LOG_DIR}/train_${TIMESTAMP}.log"
 echo "========================================================"
 echo "RLSD 训练配置"
 echo "  模型: ${MODEL_PATH}"
-echo "  数据: ${PROBLEMS_PATH}"
+echo "  数据: ${TRAIN_DATA}"
 echo "  检查点: ${CKPT_DIR}"
 echo "  日志: ${LOG_FILE}"
 echo "========================================================"
@@ -73,15 +45,8 @@ cd "${VERL_ROOT}"
 conda run -n ${CONDA_ENV} --no-capture-output \
     python recipe/RLSD/main_rlsd.py \
         actor_rollout_ref.model.path="${MODEL_PATH}" \
-        actor_rollout_ref.actor.clip_ratio_high=0.28 \
-        actor_rollout_ref.actor.clip_ratio_low=0.2 \
-        actor_rollout_ref.actor.clip_ratio=0.2 \
-        actor_rollout_ref.actor.use_kl_loss=true \
-        actor_rollout_ref.actor.kl_loss_coef=0.001 \
-        actor_rollout_ref.actor.entropy_coeff=0 \
-        data.mrsd_problems_path="${PROBLEMS_PATH}" \
-        data.train_files="${DATA_DIR}/train_level45.parquet" \
-        data.val_files="${DATA_DIR}/test.parquet" \
+        data.train_files="${TRAIN_DATA}" \
+        data.val_files="[/data3/yyy/verl/data/math/val_MATH-500.parquet, /data3/yyy/verl/data/math/val_aime_2024.parquet, /data3/yyy/verl/data/math/val_aime_2025.parquet]" \
         trainer.default_local_dir="${CKPT_DIR}" \
         trainer.project_name=rlsd \
         trainer.experiment_name="rlsd-qwen25-3b-${TIMESTAMP}" \
@@ -89,9 +54,9 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.save_freq=50 \
         trainer.test_freq=10 \
         trainer.resume_mode=auto \
-        mrsd.problems_per_step=32 \
-        mrsd.student_rollout_per_problem=8 \
-        mrsd.kl_clip=10.0 \
+        rlsd.problems_per_step=32 \
+        rlsd.student_rollout_per_problem=8 \
+        rlsd.kl_clip=10.0 \
         "$@" \
     2>&1 | tee "${LOG_FILE}"
 

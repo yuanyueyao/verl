@@ -2,9 +2,9 @@
 # Qwen3-4B-Instruct-2507 · OpenThoughts 训练集 · MATH-500/AIME24/AIME25 评测 · 完整 RLSD（SD + GRPO）
 # 用法：bash recipe/RLSD/run_rlsd_gsm8k.sh [额外 hydra overrides]
 #
-# - 训练：OpenThoughts parquet（problem/Answer/solution）；MRSD 题池从 train_files 构建（不配 mrsd_problems_path）
+# - 训练：OpenThoughts parquet（problem/Answer/solution）
 # - 评测：data/math 下 val_*.parquet（见 recipe/RLSD/data/export_math_val_parquets.py）
-# - mrsd.grpo_only=false → 全错 rollout 走 SD；有对有错走 GRPO
+# - rlsd.grpo_only=false → 全错 rollout 走 SD；有对有错走 GRPO
 # - actor 超参与 grpo_only 脚本同骨架（除 grpo_only 外）
 
 set -euo pipefail
@@ -70,7 +70,6 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         actor_rollout_ref.rollout.top_p=0.9 \
         data.train_files="${TRAIN_PARQUET}" \
         data.val_files="${VAL_FILES}" \
-        data.mrsd_problems_path=null \
         data.max_prompt_length=1024 \
         data.max_response_length=8192 \
         trainer.default_local_dir="${CKPT_DIR}" \
@@ -83,10 +82,10 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.n_gpus_per_node=4 \
         trainer.nnodes=1 \
         trainer.default_local_dir="${CKPT_DIR}" \
-        mrsd.student_rollout_per_problem=8 \
-        mrsd.problems_per_step=32 \
-        mrsd.val_max_samples=-1 \
-        mrsd.grpo_only=false \
+        rlsd.student_rollout_per_problem=8 \
+        rlsd.problems_per_step=32 \
+        rlsd.val_max_samples=-1 \
+        rlsd.grpo_only=false \
         "$@" \
     2>&1 | tee "${LOG_FILE}"
 

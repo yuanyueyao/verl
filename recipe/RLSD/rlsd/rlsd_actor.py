@@ -45,8 +45,11 @@ class RLSDPPOActor(DataParallelPPOActor):
     def _update_sd(self, data: DataProto) -> Dict:
         self.actor_module.train()
 
+        from recipe.RLSD.rlsd.loss import compute_sd_loss_chunked
+
         temperature = data.meta_info.get("temperature", 1.0)
         kl_clip: float = float(data.meta_info.get("kl_clip", 10.0))
+        mask_mode: str = data.meta_info.get("sd_mask_mode", "none")
 
         select_keys = ["responses", "input_ids", "attention_mask", "position_ids",
                        "ref_input_ids", "ref_attention_mask", "ref_position_ids", "response_mask"]
@@ -68,6 +71,14 @@ class RLSDPPOActor(DataParallelPPOActor):
         assert ref_module is not None, "SD branch requires _ref_module (set by worker)"
         ref_module.eval()
 
+        # ── Token-identity mask: read pre-built IDs from meta_info ────
+        if mask_mode == "token_identity":
+            from recipe.RLSD.rlsd.epistemic_mask import build_token_identity_mask
+            ep_ids_list = data.meta_info.get("epistemic_token_ids", [])
+            epistemic_ids = set(ep_ids_list)
+        else:
+            epistemic_ids = None
+
         for micro_batch in micro_batches:
             if isinstance(micro_batch, DataProto):
                 mb = micro_batch.batch.to(self.device_name)
@@ -81,7 +92,15 @@ class RLSDPPOActor(DataParallelPPOActor):
             T_resp = responses.shape[1]
             response_mask = mb["response_mask"].float()[:, :T_resp]
 
-            # Teacher forward（no_grad）— 使用特权 context (含 GT)
+            # ── Build per-micro-batch token mask ────────────────────
+            token_mask = None
+            if mask_mode == "token_identity" and epistemic_ids is not None:
+                token_mask = build_token_identity_mask(responses, epistemic_ids)
+            elif mask_mode == "entropy_percentile":
+                # Two-pass: first get entropy, then build mask
+                pass  # implemented below
+
+            # ── Teacher forward（no_grad）— 使用特权 context (含 GT) ──
             with torch.no_grad(), torch.autocast(device_type=self.device_name, dtype=torch.bfloat16):
                 ref_output = ref_module(
                     input_ids=mb["ref_input_ids"],
@@ -89,10 +108,9 @@ class RLSDPPOActor(DataParallelPPOActor):
                     position_ids=mb["ref_position_ids"],
                     use_cache=False,
                 )
-            # 不切片、不除 temperature — 保持 view 避免 (B,T,V) 拷贝
-            ref_full_logits = ref_output.logits  # (B, seq_ref, V) view
+            ref_full_logits = ref_output.logits  # (B, seq_ref, V)
 
-            # Student forward（有梯度）— 无特权 context
+            # ── Student forward（有梯度）— 无特权 context ────────────
             with torch.autocast(device_type=self.device_name, dtype=torch.bfloat16):
                 output = self.actor_module(
                     input_ids=mb["input_ids"],
@@ -100,10 +118,32 @@ class RLSDPPOActor(DataParallelPPOActor):
                     position_ids=mb["position_ids"],
                     use_cache=False,
                 )
-            stu_full_logits = output.logits  # (B, seq_stu, V) view
+            stu_full_logits = output.logits  # (B, seq_stu, V)
 
-            # 分块计算 full-distribution clipped KL（内存友好）
-            from recipe.RLSD.rlsd.loss import compute_sd_loss_chunked
+            # ── Entropy-percentile mask: two-pass strategy ──────────
+            # First pass: compute entropy (no backprop) to build mask
+            if mask_mode == "entropy_percentile":
+                from recipe.RLSD.rlsd.epistemic_mask import build_entropy_percentile_mask
+                # Pass 1: get entropy only (loss is discarded; no backward)
+                _, pass1_metrics = compute_sd_loss_chunked(
+                    stu_full_logits=stu_full_logits,
+                    ref_full_logits=ref_full_logits,
+                    T_resp=T_resp,
+                    response_mask=response_mask,
+                    temperature=temperature,
+                    kl_clip=kl_clip,
+                    chunk_size=128,
+                    token_mask=None,
+                    return_entropy=True,
+                )
+                entropies = pass1_metrics.get("sd/entropy_tensor")
+                if entropies is not None:
+                    pct = float(data.meta_info.get("sd_mask_entropy_percentile", 0.8))
+                    token_mask = build_entropy_percentile_mask(entropies, percentile=pct)
+                # Clear metrics from pass 1 (don't mix with pass 2)
+                # Note: pass1's logits are NOT freed — pass 2 reuses them
+
+            # ── Chunked clipped KL loss ─────────────────────────────
             loss, step_metrics = compute_sd_loss_chunked(
                 stu_full_logits=stu_full_logits,
                 ref_full_logits=ref_full_logits,
@@ -112,11 +152,16 @@ class RLSDPPOActor(DataParallelPPOActor):
                 temperature=temperature,
                 kl_clip=kl_clip,
                 chunk_size=128,
+                token_mask=token_mask,
             )
+
+            # Free ref tensors before backward — they come from no_grad
+            # and aren't needed for gradient computation
+            del ref_full_logits, ref_output
 
             loss = loss / n_micro_batches
             loss.backward()
-            del ref_full_logits, ref_output, stu_full_logits, output
+            del stu_full_logits, output
             append_to_dict(metrics, step_metrics)
 
         grad_norm = self._optimizer_step()

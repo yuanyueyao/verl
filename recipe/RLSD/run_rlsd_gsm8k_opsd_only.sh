@@ -2,10 +2,10 @@
 # Qwen2.5-3B-Instruct · OpenThoughts 训练集 · MATH-500/AIME24/AIME25 评测 · OPSD-Only（关闭 GRPO）
 # 用法：bash recipe/RLSD/run_rlsd_gsm8k_opsd_only.sh [额外 hydra overrides]
 #
-# - 训练：OpenThoughts parquet；MRSD 题池从 train_files 构建（data.mrsd_problems_path=null）
+# - 训练：OpenThoughts parquet（problem/Answer/solution）
 # - 评测：data/math 下 val_*.parquet（需事先 export_math_val_parquets.py）
-# - mrsd.opsd_only=true → 每题 1×rollout → 必走 SD；不判对错/不更新题池/不毕业检查；mixed 无 GRPO（trainer 仍会忽略配置把 k 强制为 1）
-# - 与 mrsd.grpo_only 互斥；actor 超参与 grpo_only 脚本同骨架
+# - rlsd.opsd_only=true → 每题 1×rollout → 必走 SD；不判对错/不更新题池/不毕业检查；mixed 无 GRPO（trainer 仍会忽略配置把 k 强制为 1）
+# - 与 rlsd.grpo_only 互斥；actor 超参与 grpo_only 脚本同骨架
 
 set -euo pipefail
 
@@ -69,7 +69,6 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         actor_rollout_ref.rollout.top_p=0.9 \
         data.train_files="${TRAIN_PARQUET}" \
         data.val_files="${VAL_FILES}" \
-        data.mrsd_problems_path=null \
         data.max_prompt_length=1024 \
         data.max_response_length=8192 \
         trainer.default_local_dir="${CKPT_DIR}" \
@@ -82,11 +81,11 @@ conda run -n ${CONDA_ENV} --no-capture-output \
         trainer.n_gpus_per_node=4 \
         trainer.nnodes=1 \
         trainer.default_local_dir="${CKPT_DIR}" \
-        mrsd.student_rollout_per_problem=1 \
-        mrsd.problems_per_step=32 \
-        mrsd.val_max_samples=-1 \
-        mrsd.opsd_only=true \
-        mrsd.skip_initial_eval=true \
+        rlsd.student_rollout_per_problem=1 \
+        rlsd.problems_per_step=32 \
+        rlsd.val_max_samples=-1 \
+        rlsd.opsd_only=true \
+        rlsd.skip_initial_eval=true \
         "$@" \
     2>&1 | tee "${LOG_FILE}"
 

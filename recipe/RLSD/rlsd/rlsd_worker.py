@@ -15,7 +15,7 @@ from verl.single_controller.base.decorator import Dispatch, register
 from verl.workers.fsdp_workers import ActorRolloutRefWorker
 
 
-class MRSDActorRolloutWorker(ActorRolloutRefWorker):
+class RLSDActorRolloutWorker(ActorRolloutRefWorker):
     """
     RLSD Actor + Rollout + Ref Worker。
 

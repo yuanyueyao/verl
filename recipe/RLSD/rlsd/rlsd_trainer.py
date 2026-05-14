@@ -27,7 +27,7 @@ from verl.utils.tracking import Tracking
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from recipe.RLSD.rlsd.dataset import MRSDDataset, MRSDProblem
+from recipe.RLSD.rlsd.dataset import RLSDDataset, RLSDProblem
 from recipe.RLSD.rlsd.prompt import (
     build_student_messages,
     build_teacher_privileged_messages,
@@ -232,36 +232,42 @@ def _build_grpo_train_batch(tokenizer, messages_list, responses_tokens, response
 # RLSDTrainer
 # ══════════════════════════════════════════════════════════════════════
 
-class MRSDTrainer(RayPPOTrainer):
+class RLSDTrainer(RayPPOTrainer):
     """
     RLSD Trainer：继承 RayPPOTrainer，覆写 fit()。
 
-    **模式**（``mrsd.grpo_only`` 与 ``mrsd.opsd_only`` 不能同时为 true；默认二者 false = SD+GRPO 混合）
+    **模式**（``rlsd.grpo_only`` 与 ``rlsd.opsd_only`` 不能同时为 true；默认二者 false = SD+GRPO 混合）
       - ``grpo_only``：mixed 走 GRPO；全错分支不跑 SD。
-      - ``opsd_only``：每题固定 1 次 rollout；**不判对错**、不更新 MRSDDataset 统计；每题必经 SD（特权 teacher）。题池始终为全集，无毕业语义。
+      - ``opsd_only``：每题固定 1 次 rollout；**不判对错**、不更新 RLSDDataset 统计；每题必经 SD（特权 teacher）。题池始终为全集，无毕业语义。
 
     **单步**：采样 problems → student rollout → 按上表分流 → ``update_actor``。
     """
 
-    def __init__(self, *args, mrsd_dataset: Optional[MRSDDataset] = None, **kwargs):
+    def __init__(self, *args, rlsd_dataset: Optional[RLSDDataset] = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mrsd_dataset = mrsd_dataset
+        self.rlsd_dataset = rlsd_dataset
 
-        mrsd_cfg = OmegaConf.select(self.config, "mrsd", default=OmegaConf.create({}))
-        self.student_k = int(OmegaConf.select(mrsd_cfg, "student_rollout_per_problem", default=8))
-        self.kl_clip = float(OmegaConf.select(mrsd_cfg, "kl_clip", default=10.0))
-        self.problems_per_step = int(OmegaConf.select(mrsd_cfg, "problems_per_step", default=32))
+        rlsd_cfg = OmegaConf.select(self.config, "rlsd", default=OmegaConf.create({}))
+        self.student_k = int(OmegaConf.select(rlsd_cfg, "student_rollout_per_problem", default=8))
+        self.kl_clip = float(OmegaConf.select(rlsd_cfg, "kl_clip", default=10.0))
+        self.problems_per_step = int(OmegaConf.select(rlsd_cfg, "problems_per_step", default=32))
         self.max_prompt_len = int(OmegaConf.select(self.config, "data.max_prompt_length", default=2048))
         self.max_resp_len = int(OmegaConf.select(self.config, "data.max_response_length", default=3072))
         # GRPO-Only：跳过 SD；OPSD-Only：仅无条件 SD，且关闭 GRPO / 判题统计
-        self.grpo_only = bool(OmegaConf.select(mrsd_cfg, "grpo_only", default=False))
-        self.opsd_only = bool(OmegaConf.select(mrsd_cfg, "opsd_only", default=False))
+        self.grpo_only = bool(OmegaConf.select(rlsd_cfg, "grpo_only", default=False))
+        self.opsd_only = bool(OmegaConf.select(rlsd_cfg, "opsd_only", default=False))
         if self.grpo_only and self.opsd_only:
-            raise ValueError("mrsd.grpo_only 与 mrsd.opsd_only 不能同时为 true")
+            raise ValueError("rlsd.grpo_only 与 rlsd.opsd_only 不能同时为 true")
+        # ── Uncertainty-aware SD mask config ────────────────────────
+        self.sd_mask_mode = str(OmegaConf.select(rlsd_cfg, "sd_mask_mode", default="none"))
+        self.sd_mask_entropy_percentile = float(
+            OmegaConf.select(rlsd_cfg, "sd_mask_entropy_percentile", default=0.8)
+        )
+        self._epistemic_token_ids = None  # lazy-init after tokenizer is set
         if self.opsd_only:
             if self.student_k != 1:
                 print(
-                    f"[MRSDTrainer] opsd_only=true：忽略 mrsd.student_rollout_per_problem={self.student_k}，强制为 1"
+                    f"[RLSDTrainer] opsd_only=true：忽略 rlsd.student_rollout_per_problem={self.student_k}，强制为 1"
                 )
             self.student_k = 1
 
@@ -378,11 +384,11 @@ class MRSDTrainer(RayPPOTrainer):
     # 单步训练：RLSD 核心
     # ──────────────────────────────────────────────────────────────────
 
-    def _rlsd_step(self, problems: list[MRSDProblem]) -> dict:
+    def _rlsd_step(self, problems: list[RLSDProblem], sample_file=None, step_num=0) -> dict:
         """
         RLSD 单步：
-          - opsd_only：每题 1 条 rollout → 无条件 SD；不调用 is_correct / 不写 MRSDDataset 统计。
-          - 否则：全错→SD；mixed→GRPO；全对跳过；并更新 MRSDDataset。
+          - opsd_only：每题 1 条 rollout → 无条件 SD
+          - 否则：全错→SD；mixed→GRPO；全对跳过
         """
         metrics = {}
         t0 = time.time()
@@ -439,12 +445,6 @@ class MRSDTrainer(RayPPOTrainer):
                         grpo_lp_indices.append(flat_idx + ri)
                         grpo_group_ids.append(_pi)
 
-                self.mrsd_dataset.update_problem_stats(
-                    prob.index,
-                    new_wrong_trajs=[r for r, c in zip(resps, correctness) if not c],
-                    n_correct=n_correct,
-                    n_total=len(resps),
-                )
                 flat_idx += self.student_k
 
         metrics["rlsd/n_sd_samples"] = float(len(sd_resps))
@@ -520,6 +520,16 @@ class MRSDTrainer(RayPPOTrainer):
             sd_data.meta_info["global_token_num"] = (
                 sd_data.batch["attention_mask"].sum(dim=-1).tolist()
             )
+            # ── Uncertainty-aware mask ──────────────────────────────
+            sd_data.meta_info["sd_mask_mode"] = self.sd_mask_mode
+            sd_data.meta_info["sd_mask_entropy_percentile"] = self.sd_mask_entropy_percentile
+            if self.sd_mask_mode == "token_identity":
+                # Lazy-build epistemic token IDs (requires tokenizer)
+                if self._epistemic_token_ids is None:
+                    from recipe.RLSD.rlsd.epistemic_mask import build_epistemic_token_ids
+                    self._epistemic_token_ids = list(build_epistemic_token_ids(self.tokenizer))
+                sd_data.meta_info["epistemic_token_ids"] = self._epistemic_token_ids
+            # ────────────────────────────────────────────────────────
             sd_padded, pad_size = pad_dataproto_to_divisor(sd_data, self.actor_rollout_wg.world_size)
             sd_out_padded = self.actor_rollout_wg.update_actor(sd_padded)
             sd_out = unpad_dataproto(sd_out_padded, pad_size=pad_size)
@@ -612,6 +622,32 @@ class MRSDTrainer(RayPPOTrainer):
             metrics.update(grpo_metrics)
 
         metrics["rlsd/step_time_s"] = time.time() - t0
+
+        # ── 定期保存训练输出采样 ────────────────────────────────────
+        if sample_file and len(problems) > 0:
+            import json as _json
+            from recipe.RLSD.rlsd.verifier import extract_boxed_answer
+
+            n_show = min(3, len(problems))
+            with open(sample_file, "a") as _f:
+                for _pi in range(n_show):
+                    prob = problems[_pi]
+                    resps = student_resps_grouped[_pi]
+                    correct_flags = [is_correct(r, prob.ground_truth) for r in resps]
+                    for _ri, _r in enumerate(resps):
+                        _f.write(_json.dumps({
+                            "step": step_num,
+                            "problem_idx": prob.index,
+                            "question": prob.question[:500],
+                            "ground_truth": prob.ground_truth,
+                            "rollout": _ri,
+                            "correct": int(correct_flags[_ri]),
+                            "extracted": (extract_boxed_answer(_r) or ""),
+                            "response": _r,
+                            "resp_len_tokens": len(_r),
+                        }, ensure_ascii=False) + "\n")
+                    _f.flush()
+
         return metrics
 
     # ──────────────────────────────────────────────────────────────────
@@ -640,7 +676,7 @@ class MRSDTrainer(RayPPOTrainer):
         return "aime" in bench.lower()
 
     def _evaluate(self, step: int, logger: Tracking) -> dict:
-        """在多份 val parquet 上评测；文件名含 ``aime`` 的基准每题随机采样 n 次（``mrsd.eval_aime_avg_at_n``），
+        """在多份 val parquet 上评测；文件名含 ``aime`` 的基准每题随机采样 n 次（``rlsd.eval_aime_avg_at_n``），
         指标为「每题正确率均值」（macro）；同时写入 ``acc_at_{n}`` 与 ``avg_at_{n}`` 两个键，数值相同。"""
         import json
 
@@ -649,7 +685,7 @@ class MRSDTrainer(RayPPOTrainer):
         if not val_paths:
             return {}
 
-        raw_max = OmegaConf.select(self.config, "mrsd.val_max_samples", default=64)
+        raw_max = OmegaConf.select(self.config, "rlsd.val_max_samples", default=64)
         if raw_max is None:
             max_val_cap = -1
         else:
@@ -682,7 +718,7 @@ class MRSDTrainer(RayPPOTrainer):
                     f"\n[eval] step={step}  benchmark={bench}  file={val_path}\n"
                     f"[eval] 评测行数: {len(df)}/{n_all}"
                     + ("" if max_val_cap > 0 else "  (全量)")
-                    + f"  [mrsd.val_max_samples={raw_max}]"
+                    + f"  [rlsd.val_max_samples={raw_max}]"
                 )
 
                 messages_list = []
@@ -700,12 +736,12 @@ class MRSDTrainer(RayPPOTrainer):
 
                 n_probs = len(ground_truths)
                 is_aime = self._eval_benchmark_is_aime(bench)
-                k_aime = int(OmegaConf.select(self.config, "mrsd.eval_aime_avg_at_n", default=12))
+                k_aime = int(OmegaConf.select(self.config, "rlsd.eval_aime_avg_at_n", default=12))
 
                 if is_aime and k_aime > 1:
-                    temp_ev = float(OmegaConf.select(self.config, "mrsd.eval_aime_temperature", default=1.0))
-                    top_p_ev = float(OmegaConf.select(self.config, "mrsd.eval_aime_top_p", default=0.95))
-                    top_k_ev = int(OmegaConf.select(self.config, "mrsd.eval_aime_top_k", default=-1))
+                    temp_ev = float(OmegaConf.select(self.config, "rlsd.eval_aime_temperature", default=1.0))
+                    top_p_ev = float(OmegaConf.select(self.config, "rlsd.eval_aime_top_p", default=0.95))
+                    top_k_ev = int(OmegaConf.select(self.config, "rlsd.eval_aime_top_k", default=-1))
                     expanded = [msg for msg in messages_list for _ in range(k_aime)]
                     gen_batch = _build_gen_batch(self.tokenizer, expanded, self.max_prompt_len)
                     gen_padded, pad_size = pad_dataproto_to_divisor(gen_batch, self.actor_rollout_wg.world_size)
@@ -873,23 +909,27 @@ class MRSDTrainer(RayPPOTrainer):
         self.global_steps = 0
         self._load_checkpoint()
 
-        print(f"\n[RLSDTrainer] 开始  total_steps={total_steps}  n_problems={len(self.mrsd_dataset)}")
-        if not bool(OmegaConf.select(self.config, "mrsd.skip_initial_eval", default=False)):
+        print(f"\n[RLSDTrainer] 开始  total_steps={total_steps}  n_problems={len(self.rlsd_dataset)}")
+        if not bool(OmegaConf.select(self.config, "rlsd.skip_initial_eval", default=False)):
             self._evaluate(step=0, logger=logger)
         else:
-            print("[RLSDTrainer] 已跳过初试验证（mrsd.skip_initial_eval=true）")
+            print("[RLSDTrainer] 已跳过初试验证（rlsd.skip_initial_eval=true）")
 
         progress = tqdm(total=total_steps, initial=self.global_steps, desc="RLSD")
 
         def _scalar(v):
             return float(v[0]) if isinstance(v, (list, tuple)) else float(v)
 
+        sample_file = ckpt_dir / "train_samples.jsonl"
+        sample_freq = int(OmegaConf.select(self.config, "rlsd.sample_dump_freq", default=10))
+
         while self.global_steps < total_steps:
-            batch = self.mrsd_dataset.sample_batch(self.problems_per_step)
+            batch = self.rlsd_dataset.sample_batch(self.problems_per_step)
             if not batch:
                 continue
 
-            step_metrics = self._rlsd_step(batch)
+            dump = sample_file if self.global_steps % sample_freq == 0 else None
+            step_metrics = self._rlsd_step(batch, sample_file=dump, step_num=self.global_steps)
             self.global_steps += 1
             step_metrics["train/global_step"] = float(self.global_steps)
             logger.log(data=step_metrics, step=self.global_steps)
@@ -910,11 +950,8 @@ class MRSDTrainer(RayPPOTrainer):
 
             if self.global_steps % save_freq == 0:
                 self._save_checkpoint()
-                self.mrsd_dataset.save_state(str(ckpt_dir / f"rlsd_dataset_step{self.global_steps}.json"))
 
         progress.close()
         self._save_checkpoint()
-        self.mrsd_dataset.save_state(str(ckpt_dir / f"rlsd_dataset_final.json"))
 
-        stats = self.mrsd_dataset.stats()
-        print(f"\n[RLSDTrainer] 完成  训练题池: {stats['n_total']} 道")
+        print(f"\n[RLSDTrainer] 完成  total_steps={self.global_steps}")

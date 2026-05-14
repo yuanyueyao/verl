@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLSD — OPSD Teacher vs Student</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#1a1a2e; color:#e0e0e0; height:100vh; display:flex; flex-direction:column; }
+.header { background:#16213e; padding:10px 20px; border-bottom:1px solid #0f3460; flex-shrink:0; }
+.header h1 { font-size:16px; }
+.header p { font-size:11px; color:#8892b0; margin-top:2px; }
+.legend { display:flex; gap:18px; font-size:11px; color:#8892b0; margin-top:6px; align-items:center; }
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-c { width:14px; height:14px; border-radius:3px; }
+.main { display:flex; flex:1; overflow:hidden; }
+.panel { overflow-y:auto; padding:10px 12px; }
+.panel-left { width:48%; border-right:1px solid #0f3460; background:#16213e; }
+.panel-right { flex:1; background:#1a1a2e; padding:16px; }
+.panel-title { font-size:13px; font-weight:bold; padding:6px 10px; margin:-10px -12px 10px; display:flex; justify-content:space-between; align-items:center; }
+.panel-title.s { background:rgba(67,97,238,0.25); }
+.panel-title.t { background:rgba(233,69,96,0.25); }
+
+/* Token */
+.token {
+  display:inline-block; padding:4px 6px; margin:2px; border-radius:5px; cursor:pointer;
+  font-family:monospace; font-size:12px; border:2px solid transparent; position:relative;
+}
+.token:hover { border-color:#f5c542; }
+.token.active { outline:3px solid #f5c542; outline-offset:1px; z-index:2; }
+
+/* Entropy 底色 */
+.e0 { background:rgba(34,197,94,0.25); color:#fff; }
+.e1 { background:rgba(234,179,8,0.40); color:#000; }
+.e2 { background:rgba(249,115,22,0.50); color:#fff; }
+.e3 { background:rgba(239,68,68,0.60); color:#fff; font-weight:bold; }
+
+/* KL border */
+.k0 { border-bottom-color:rgba(255,255,255,0.1); }
+.k1 { border-bottom-color:rgba(255,200,0,0.45); }
+.k2 { border-bottom-color:rgba(255,120,30,0.6); }
+.k3 { border-bottom-color:rgba(255,40,40,0.8); border-bottom-width:3px; }
+
+.info-box { font-size:11px; color:#8892b0; padding:6px 8px; background:rgba(255,255,255,0.03); border-radius:4px; margin-bottom:8px; }
+.verdict { font-size:12px; padding:6px 10px; border-radius:4px; margin-bottom:8px; display:inline-block; }
+.verdict.wrong { background:rgba(200,60,60,0.2); color:#e57373; }
+.verdict.correct { background:rgba(0,180,100,0.2); color:#4ecca3; }
+.bar-row { display:flex; align-items:center; margin:3px 0; font-size:11px; height:22px; }
+.bar-lbl { width:120px; text-align:right; padding-right:6px; font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#c0c0c0; flex-shrink:0; }
+.bar-outer { flex:1; height:17px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; }
+.bar-inner { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:5px; font-size:10px; color:#fff; }
+.bar-s { background:linear-gradient(90deg,#4361ee,#3a0ca3); }
+.bar-t { background:linear-gradient(90deg,#e94560,#c81d4e); }
+.sec-title { font-size:13px; font-weight:bold; margin:16px 0 6px; padding-bottom:3px; border-bottom:1px solid #0f3460; }
+.summary { background:rgba(255,255,255,0.05); border-radius:6px; padding:10px 12px; margin-bottom:10px; }
+.summary .row { display:flex; justify-content:space-between; margin:3px 0; font-size:12px; }
+.cols { display:flex; gap:16px; }
+.cols > div { flex:1; }
+.placeholder { font-size:13px; color:#8892b0; padding:40px 20px; text-align:center; line-height:1.8; }
+.hot-list { font-size:11px; line-height:1.8; margin-top:6px; }
+.hot-list a { color:#f5c542; cursor:pointer; text-decoration:underline; margin:0 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>OPSD: Student（仅问题）vs Teacher（问题+答案+推导）</h1>
+  <p>左侧 = Student回复（点击token看概率对比）| 右侧 = 概率分布</p>
+  <div class="legend">
+    <span>标注：</span>
+    <span class="legend-item"><span class="legend-c" style="background:rgba(0,180,100,0.3)"></span>→<span style="background:rgba(200,50,50,0.5)">高熵</span></span>
+    <span class="legend-item"><span class="legend-c" style="border-bottom:3px solid rgba(255,200,0,0.6);background:transparent"></span>高KL(S||T)</span>
+    <span class="legend-item"><span class="legend-c" style="border-bottom:3px solid rgba(255,40,40,0.9);background:transparent"></span>极高KL(S||T)</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="panel panel-left">
+    <div class="panel-title s"><span>Student 回复（仅问题）</span><span id="sm"></span></div>
+    <div class="info-box" id="sq"></div>
+    <div id="sv"></div>
+    <div id="st" style="line-height:2; margin-bottom:20px;"></div>
+
+    <div class="panel-title t"><span>Teacher 回复（solution-conditioned）</span><span id="tm"></span></div>
+    <div class="info-box" id="tq"></div>
+    <div id="tv"></div>
+    <div id="tt" style="line-height:2;"></div>
+  </div>
+
+  <div class="panel panel-right" id="detail">
+    <div class="placeholder">← 点击左侧 Student 回复的任意 token<br>查看该位置 Teacher / Student 概率分布对比</div>
+  </div>
+</div>
+
+<script>
+let SD = null;
+
+fetch("sd_vis_data.json").then(r => r.json()).then(d => { SD = d; init(); })
+  .catch(e => document.getElementById("detail").innerHTML =
+    `<div class="placeholder" style="color:#e57373;">加载失败: ${e.message}</div>`);
+
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function esct(s) { return esc(s).replace(/\n/g,"↵"); }
+
+function init() {
+  const q = esc(SD.question.slice(0, 200));
+  const gt = esc(SD.ground_truth);
+
+  document.getElementById("sq").innerHTML = `<b>题目</b> ${q}...<br><b>答案</b> <code>${gt}</code>`;
+  document.getElementById("tq").innerHTML = `<b>题目</b> ${q}...<br><b>答案</b> <code>${gt}</code><br><b>Solution</b> ${SD.solution.length} chars`;
+
+  // 统计
+  const ents = SD.tokens_data.map(t => t.s_entropy);
+  const kls = SD.tokens_data.map(t => t.kl_divergence);
+  const entMean = (ents.reduce((a,b)=>a+b,0)/ents.length).toFixed(3);
+  const klMean = (kls.reduce((a,b)=>a+b,0)/kls.length).toFixed(4);
+  const entHigh = ents.filter(e => e > 1.5).length;
+  const klHigh = kls.filter(k => k > 0.1).length;
+
+  document.getElementById("sm").innerHTML =
+    `${SD.student_response_tokens.length} tokens &nbsp; <span style="font-size:10px;color:#8892b0;">ent avg=${entMean} &gt;1.5: ${entHigh} &nbsp; kl avg=${klMean} &gt;0.1: ${klHigh}</span>`;
+
+  document.getElementById("sv").innerHTML = verdict(SD.student_response_text, "student");
+  document.getElementById("st").innerHTML = buildTokens(SD.student_response_tokens, ents, kls, "s");
+
+  document.getElementById("tv").innerHTML = verdict(SD.teacher_response_text, "teacher");
+  document.getElementById("tm").textContent = `${SD.teacher_response_tokens.length} tokens`;
+  document.getElementById("tt").innerHTML = buildTokens(SD.teacher_response_tokens, [], [], "t");
+
+  // Top 高熵 + 高KL token
+  showHotList(ents, kls);
+}
+
+function verdict(text, who) {
+  const m = text.match(/\\boxed\{([^}]*?)\}/);
+  const ans = m ? m[1] : "(未找到 \\boxed{})";
+  const isCorrect = SD && ans.trim() === SD.ground_truth.trim();
+  return `<span class="verdict ${isCorrect?"correct":"wrong"}">${who==="student"?"Student":"Teacher"} 答案: ${esc(ans)} ${isCorrect?"✓":"✗"}</span>`;
+}
+
+function klClass(v) {
+  if (v > 0.5) return "k3";
+  if (v > 0.1) return "k2";
+  if (v > 0.05) return "k1";
+  return "k0";
+}
+function entClass(v) {
+  if (v > 5) return "e3";
+  if (v > 3) return "e2";
+  if (v > 1.5) return "e1";
+  return "e0";
+}
+
+function buildTokens(tokList, entList, klList, prefix) {
+  let html = "";
+  for (let i = 0; i < tokList.length; i++) {
+    const eCls = entList[i] !== undefined ? entClass(entList[i]) : "e0";
+    const kCls = klList[i] !== undefined ? klClass(klList[i]) : "k0";
+    const lbl = esct(tokList[i]);
+    html += `<span class="token ${eCls} ${kCls}" id="${prefix}t${i}" data-idx="${i}" data-prefix="${prefix}" title="#${i} ent=${entList[i]?.toFixed(2)||"?"} KL=${klList[i]?.toFixed(3)||"?"}
+${esc(tokList[i])}">${lbl}</span>`;
+  }
+  return html;
+}
+
+function showHotList(ents, kls) {
+  // 找 top-10 高熵 + top-10 高KL 位置
+  const indexed = ents.map((e,i)=>({i,e,kl:kls[i]}));
+  const topEnt = [...indexed].sort((a,b)=>b.e-a.e).slice(0,10);
+  const topKL = [...indexed].sort((a,b)=>b.kl-a.kl).slice(0,10);
+
+  let h = `<div class="summary" style="margin-top:10px;">`;
+  h += `<div class="row"><b>Top-10 高熵 token</b></div>`;
+  h += `<div class="hot-list">`;
+  for (const x of topEnt) {
+    const tok = esct(SD.student_response_tokens[x.i]);
+    h += `<a onclick="jumpToken(${x.i})" title="跳转到此token">#${x.i}</a> `;
+  }
+  h += `</div>`;
+  h += `<div class="row" style="margin-top:6px;"><b>Top-10 高KL token</b></div>`;
+  h += `<div class="hot-list">`;
+  for (const x of topKL) {
+    const tok = esct(SD.student_response_tokens[x.i]);
+    h += `<a onclick="jumpToken(${x.i})" title="跳转到此token">#${x.i}</a> `;
+  }
+  h += `</div></div>`;
+  document.getElementById("sv").insertAdjacentHTML("afterend", h);
+}
+
+function jumpToken(idx) {
+  const el = document.getElementById(`st${idx}`);
+  if (!el) return;
+  el.scrollIntoView({behavior:"smooth", block:"center"});
+  document.querySelectorAll(".token.active").forEach(e => e.classList.remove("active"));
+  el.classList.add("active");
+  showStudentLogits(idx);
+}
+
+document.addEventListener("click", function(e) {
+  const tok = e.target.closest(".token");
+  if (!tok) return;
+  const idx = parseInt(tok.dataset.idx);
+  const prefix = tok.dataset.prefix;
+  document.querySelectorAll(".token.active").forEach(el => el.classList.remove("active"));
+  tok.classList.add("active");
+
+  if (prefix === "s" && SD && idx < SD.tokens_data.length) {
+    showStudentLogits(idx);
+  } else {
+    document.getElementById("detail").innerHTML =
+      `<div class="placeholder">这是 Teacher 的 token。点击 Student 回复中的 token 查看概率对比。</div>`;
+  }
+});
+
+function showStudentLogits(idx) {
+  const t = SD.tokens_data[idx];
+  const tl = esct(SD.student_response_tokens[idx]);
+
+  let html = `<div class="summary">
+    <div class="row"><b>Student Token #${idx}</b></div>
+    <div class="row"><code style="font-size:16px;">${tl}</code></div>
+    <div class="row" style="margin-top:6px;"><span>Student 熵</span><span style="color:#4361ee">${t.s_entropy.toFixed(3)}</span></div>
+    <div class="row"><span>Teacher 熵</span><span style="color:#e94560">${t.t_entropy.toFixed(3)}</span></div>
+    <div class="row"><span>KL(Student || Teacher)</span><span style="color:${t.kl_divergence>0.05?'#e94560':'#4ecca3'}">${t.kl_divergence.toFixed(4)}</span></div>
+    <div class="row"><span>Student P(此token)</span><span>${(t.s_actual_prob*100).toFixed(3)}%</span></div>
+    <div class="row"><span>Teacher P(此token)</span><span>${(t.t_actual_prob*100).toFixed(3)}%</span></div>
+  </div>`;
+
+  html += `<div class="cols">`;
+  const sMax = t.s_topk[0]?.prob || 1;
+  html += `<div><div class="sec-title" style="color:#4361ee">Student top-${SD.top_k}</div>`;
+  for (const item of t.s_topk) {
+    html += barRow(item, sMax, "bar-s");
+  }
+  html += `</div>`;
+  const tMax = t.t_topk[0]?.prob || 1;
+  html += `<div><div class="sec-title" style="color:#e94560">Teacher top-${SD.top_k}</div>`;
+  for (const item of t.t_topk) {
+    html += barRow(item, tMax, "bar-t");
+  }
+  html += `</div></div>`;
+
+  // 差异
+  const sSet = new Set(t.s_topk.map(x=>x.token));
+  const tSet = new Set(t.t_topk.map(x=>x.token));
+  const onlyS = [...sSet].filter(x=>!tSet.has(x)).slice(0,5);
+  const onlyT = [...tSet].filter(x=>!sSet.has(x)).slice(0,5);
+  if (onlyS.length || onlyT.length) {
+    html += `<div class="summary" style="margin-top:10px;">`;
+    if (onlyS.length) html += `<div class="row"><span style="color:#4361ee">仅 Student top-${SD.top_k}</span><span>${onlyS.join(", ")}</span></div>`;
+    if (onlyT.length) html += `<div class="row"><span style="color:#e94560">仅 Teacher top-${SD.top_k}</span><span>${onlyT.join(", ")}</span></div>`;
+    html += `</div>`;
+  }
+
+  document.getElementById("detail").innerHTML = html;
+}
+
+function barRow(item, maxVal, cls) {
+  const pct = Math.max(1, (item.prob / maxVal * 100));
+  const tl = esct(item.token);
+  return `<div class="bar-row">
+    <span class="bar-lbl">${tl}</span>
+    <span class="bar-outer"><span class="bar-inner ${cls}" style="width:${pct}%">${(item.prob*100).toFixed(2)}%</span></span>
+  </div>`;
+}
+</script>
+</body>
+</html>

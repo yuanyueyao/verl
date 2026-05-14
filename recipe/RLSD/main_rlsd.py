@@ -72,15 +72,15 @@ class TaskRunner:
         local_path = copy_to_local(config.actor_rollout_ref.model.path)
         tokenizer = hf_tokenizer(local_path, trust_remote_code=config.data.get("trust_remote_code", False))
 
-        # ── Worker 类（MRSD 自定义 worker，替换内部 actor 的 loss）────
+        # ── Worker 类（RLSD 自定义 worker，替换内部 actor 的 loss）────
         import sys
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-        from recipe.RLSD.rlsd.rlsd_worker import MRSDActorRolloutWorker
-        from recipe.RLSD.rlsd.rlsd_trainer import MRSDTrainer
-        from recipe.RLSD.rlsd.dataset import MRSDDataset
+        from recipe.RLSD.rlsd.rlsd_worker import RLSDActorRolloutWorker
+        from recipe.RLSD.rlsd.rlsd_trainer import RLSDTrainer
+        from recipe.RLSD.rlsd.dataset import RLSDDataset
 
-        actor_rollout_cls = MRSDActorRolloutWorker
+        actor_rollout_cls = RLSDActorRolloutWorker
         ray_worker_group_cls = RayWorkerGroup
 
         # ── Role → Worker 映射 ──
@@ -100,7 +100,7 @@ class TaskRunner:
             mapping=mapping,
         )
 
-        # ── 标准 verl 数据集（只用于满足父类 / dataloader 初始化；MRSD fit 不迭代 train_dataloader）
+        # ── 标准 verl 数据集（用于父类 / dataloader 初始化；RLSD fit 不迭代 train_dataloader）
         from omegaconf import ListConfig
         from verl.trainer.main_ppo import create_rl_dataset, create_rl_sampler
 
@@ -113,62 +113,41 @@ class TaskRunner:
 
         def _parquet_has_column(path: str, col: str) -> bool:
             import pyarrow.parquet as pq
-
             return col in pq.read_schema(path).names
 
         train_paths = _data_files_to_list(config.data.train_files)
         if not train_paths:
             raise ValueError("config.data.train_files 不能为空")
-        if len(train_paths) > 1:
-            print("[main] WARN: MRSDDataset.from_parquet 仅使用 train_files 列表中的第一个路径")
         train_pool_src = train_paths[0]
 
+        # 构建标准 RLHF dataset（供父类初始化；训练时用 RLSDDataset 采样）
         rlhf_train_spec = config.data.train_files
-        if _parquet_has_column(train_paths[0], "problem") and not _parquet_has_column(
-            train_paths[0], "prompt"
+        if _parquet_has_column(train_pool_src, "problem") and not _parquet_has_column(
+            train_pool_src, "prompt"
         ):
             val_paths = _data_files_to_list(config.data.val_files)
             if not val_paths:
-                raise ValueError(
-                    "训练集为 OpenThoughts 布局（有 problem、无 prompt）时，必须为 data.val_files "
-                    "提供至少一个含 prompt 列的 verl parquet，以供 RLHF Dataset 占位初始化"
-                )
+                raise ValueError("训练集为 OpenThoughts 布局（有 problem、无 prompt），需配置 data.val_files 用于 RLHF Dataset 初始化")
             rlhf_train_spec = val_paths[0]
-            print(
-                f"[main] 训练题池使用 OpenThoughts parquet；RLHF train_dataset 占位文件: {rlhf_train_spec}"
-            )
 
         train_dataset = create_rl_dataset(rlhf_train_spec, config.data, tokenizer, None)
         val_dataset = create_rl_dataset(config.data.val_files, config.data, tokenizer, None)
         train_sampler = create_rl_sampler(config.data, train_dataset)
 
-        # ── MRSD 问题数据集 ───────────────────────────────────────────
-        mrsd_cfg = config.mrsd
-        mrsd_problems_path = config.data.get("mrsd_problems_path", None)
-        dataset_kwargs = {}
-        ds_seed = OmegaConf.select(mrsd_cfg, "dataset_seed", default=None)
-        if ds_seed is not None:
-            dataset_kwargs["seed"] = int(ds_seed)
-        if mrsd_problems_path:
-            print(f"[main] 从 jsonl 加载训练题池: {mrsd_problems_path}")
-            mrsd_dataset = MRSDDataset.from_pass_at_k_results(
-                pass_at_k_jsonl=mrsd_problems_path,
-                type_b_only=True,
-                **dataset_kwargs,
-            )
-        else:
-            print(f"[main] mrsd_problems_path 未设置，从 train parquet 加载题池: {train_pool_src}")
-            mrsd_dataset = MRSDDataset.from_parquet(train_pool_src, **dataset_kwargs)
-        print(f"[main] 共 {len(mrsd_dataset)} 道题目")
+        # ── RLSD 问题数据集（从 train parquet 加载全量题池）───────────
+        rlsd_cfg = config.rlsd
+        ds_seed = OmegaConf.select(rlsd_cfg, "dataset_seed", default=None)
+        rlsd_dataset = RLSDDataset.from_parquet(train_pool_src, seed=int(ds_seed) if ds_seed else 42)
+        print(f"[main] RLSDDataset 共 {len(rlsd_dataset)} 道题目")
 
         # ── 训练器 ────────────────────────────────────────────────────
-        trainer = MRSDTrainer(
+        trainer = RLSDTrainer(
             config=config,
             tokenizer=tokenizer,
             role_worker_mapping=role_worker_mapping,
             resource_pool_manager=resource_pool_manager,
             ray_worker_group_cls=ray_worker_group_cls,
-            mrsd_dataset=mrsd_dataset,
+            rlsd_dataset=rlsd_dataset,
             train_dataset=train_dataset,
             val_dataset=val_dataset,
             collate_fn=collate_fn,

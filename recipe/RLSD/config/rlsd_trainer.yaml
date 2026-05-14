@@ -59,8 +59,7 @@ data:
 
     name: null
 
-  # ── MRSD 可选：从 pass@k 诊断 jsonl 建训练题池；null 则用 train_files 的 parquet 全量建池。验证集仅看 data.val_files（见 rlsd_trainer._evaluate）。
-  mrsd_problems_path: null
+  # ── 训练题池从 train_files parquet 全量加载；评测集由 data.val_files 控制
 
 # config for actor, rollout and reference model
 actor_rollout_ref:
@@ -610,7 +609,7 @@ trainer:
 
   worker_nsight_options: null
 
-  project_name: mrsd
+  project_name: rlsd
 
   experiment_name: rlsd-qwen25-3b
 
@@ -645,7 +644,7 @@ trainer:
 
   del_local_ckpt_after_load: False
 
-  default_local_dir: /data3/yyy/verl/checkpoints/mrsd
+  default_local_dir: /data3/yyy/verl/checkpoints/rlsd
 
   max_actor_ckpt_to_keep: null
 
@@ -665,9 +664,9 @@ ray_init:
 # ══════════════════════════════════════════════════════════════════════
 # RLSD 专属超参
 # ══════════════════════════════════════════════════════════════════════
-mrsd:
+rlsd:
 
-  # MRSDDataset.sample_batch 用 RNG 种子（可复现题池抽样）
+  # 随机采样种子
   dataset_seed: 42
 
   # Student rollout 采样数（per problem）
@@ -676,18 +675,16 @@ mrsd:
   # SD 分支：per-vocab KL clip 阈值 τ
   kl_clip: 10.0
 
-  # GRPO 的 PPO clip 由 actor_rollout_ref.actor.clip_ratio / clip_ratio_low / clip_ratio_high 控制
-
   # 每步采样多少道题
   problems_per_step: 32
 
-  # 验证集评测条数：正整数=截断前 N 条；0 或 -1=整份 val parquet（GSM8K test 约 1319，eval 更慢）
+  # 验证集评测条数：正整数=截断前 N 条；0 或 -1=整份 val parquet
   val_max_samples: -1
 
-  # true = 跳过训练开始前 step=0 的验证（仍可按 trainer.test_freq 在训练中评测）
+  # true = 跳过训练开始前 step=0 的验证
   skip_initial_eval: false
 
-  # 名称含 aime 的验证 parquet：每题随机采样 n 次（见 eval_aime_avg_at_n）；宏指标同时记 val/.../acc_at_n 与 avg_at_n（同值）
+  # 名称含 aime 的验证 parquet：每题随机采样 n 次
   eval_aime_avg_at_n: 12
 
   eval_aime_temperature: 1.0
@@ -696,8 +693,15 @@ mrsd:
 
   eval_aime_top_k: -1
 
-  # GRPO-Only：true = 跳过 SD，仅 mixed 走 GRPO
+  # GRPO-Only：true = 跳过 SD
   grpo_only: false
 
-  # OPSD-Only：true = 跳过 GRPO；每题强制 1 次 rollout；不判对错、不写 MRSDDataset（与 grpo_only 互斥）
+  # OPSD-Only：true = 跳过 GRPO；每题强制 1 次 rollout
   opsd_only: false
+
+  # ── Uncertainty-Aware SD Mask ────────────────────────────────────
+  # "none" | "token_identity" | "entropy_percentile"
+  sd_mask_mode: none
+
+  # 仅 entropy_percentile 模式生效：mask 掉 top (1-pct) 高熵位置的 KL 贡献
+  sd_mask_entropy_percentile: 0.8

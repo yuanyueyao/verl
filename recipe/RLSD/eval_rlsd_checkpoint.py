@@ -4,7 +4,7 @@
 用法：
     python recipe/RLSD/eval_rlsd_checkpoint.py \
         --ckpt /data3/yyy/verl/checkpoints/rlsd/global_step_450 \
-        --data /data3/yyy/verl/data/rlsd/pass_at_k_pass1_resp8192_20260501_095948_dead_zone.jsonl \
+        --data /data3/yyy/verl/data/Openthoughts_math_30k_opsd/data/train.parquet \
         --n 10 \
         --out /data3/yyy/verl/checkpoints/rlsd/eval_step450_samples.jsonl
 """
@@ -113,7 +113,7 @@ def run_inference(model_dir: str, data_path: str, n: int, out_path: str):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", default="/data3/yyy/verl/checkpoints/rlsd/global_step_450")
-    ap.add_argument("--data", default="/data3/yyy/verl/data/rlsd/pass_at_k_pass1_resp8192_20260501_095948_dead_zone.jsonl")
+    ap.add_argument("--data", default="/data3/yyy/verl/recipe/RLSD/data/type_b_problems.jsonl")
     ap.add_argument("--n", type=int, default=10)
     ap.add_argument("--out", default="/data3/yyy/verl/checkpoints/rlsd/eval_step450_samples.jsonl")
     ap.add_argument("--skip_merge", action="store_true", help="跳过 merge，直接从 --merged_dir 加载")

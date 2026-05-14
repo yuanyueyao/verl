@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多模型逐Token熵对比</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --bg:#0f0f1a; --bg2:#1a1a2e; --bg3:#141428; --border:#222; --border2:#333;
+  --text:#e0e0e0; --muted:#8892b0; --accent:#4361ee; --accent2:#7209b7;
+  --ok:#4ecca3; --err:#e57373; --warn:#f5c542; --pink:#e94560;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+button { font:inherit; color:inherit; background:none; border:1px solid var(--border2); cursor:pointer; border-radius:4px; padding:3px 9px; font-size:11px; }
+button:hover { background:rgba(255,255,255,0.05); }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+code { font-family: "SF Mono", Menlo, Consolas, monospace; }
+
+/* Header */
+.header { background:var(--bg2); padding:10px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.header h1 { font-size:15px; font-weight:600; }
+.header .info { font-size:11px; color:var(--muted); }
+.view-switch { display:flex; gap:4px; }
+.view-switch button.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.approx-note { display:none; background:rgba(245,197,66,0.08); color:var(--warn); padding:5px 14px; font-size:11px; border-bottom:1px solid var(--border); }
+
+/* Tabs */
+.tabs { display:flex; gap:6px; background:var(--bg2); padding:7px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.tab { padding:5px 12px; border-radius:5px; cursor:pointer; font-size:12px; background:rgba(255,255,255,0.04); border:1px solid transparent; user-select:none; }
+.tab:hover { border-color:#555; }
+.tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.tab .badge { display:inline-block; margin-left:6px; padding:1px 5px; border-radius:8px; font-size:10px; background:rgba(255,255,255,0.15); }
+.q-tabs { display:flex; gap:4px; padding:6px 12px; background:var(--bg3); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.q-tab { padding:3px 10px; border-radius:4px; cursor:pointer; font-size:11px; border:1px solid var(--border2); user-select:none; display:flex; align-items:center; gap:5px; }
+.q-tab:hover { border-color:#666; }
+.q-tab.active { background:var(--pink); border-color:var(--pink); color:#fff; }
+.q-tab .v { font-size:10px; opacity:0.8; }
+
+/* Main detail layout */
+.main { display:flex; height:calc(100vh - 165px); position:relative; }
+.left { overflow-y:auto; padding:12px; background:var(--bg2); border-right:1px solid var(--border); }
+.splitter { width:5px; background:var(--border); cursor:col-resize; flex-shrink:0; position:relative; transition:background 0.15s; }
+.splitter:hover, .splitter.dragging { background:var(--accent); }
+.right { flex:1; overflow-y:auto; padding:14px; background:var(--bg); min-width:280px; }
+
+/* Problem & verdict */
+.problem-box { font-size:12px; color:#a8b2c8; padding:8px 10px; background:rgba(255,255,255,0.02); border-radius:4px; margin-bottom:8px; position:relative; }
+.problem-box.collapsed { max-height:72px; overflow:hidden; }
+.problem-box.collapsed::after { content:""; position:absolute; left:0; right:0; bottom:0; height:24px; background:linear-gradient(transparent, rgba(26,26,46,1)); pointer-events:none; }
+.expand-btn { position:absolute; right:6px; bottom:4px; font-size:10px; padding:1px 6px; z-index:2; }
+.verdict { display:inline-block; padding:3px 8px; border-radius:3px; font-size:11px; margin-bottom:6px; margin-right:6px; }
+.verdict.correct { background:rgba(0,200,100,0.2); color:var(--ok); }
+.verdict.wrong { background:rgba(200,50,50,0.2); color:var(--err); }
+.actions { display:inline-flex; gap:5px; vertical-align:middle; }
+
+/* Stats */
+.stats { font-size:11px; color:var(--muted); margin:6px 0; display:flex; gap:14px; flex-wrap:wrap; }
+.stats b { color:var(--text); }
+
+/* Tokens stream */
+.tok-stream { line-height:2; margin-top:6px; padding:6px; background:rgba(0,0,0,0.15); border-radius:4px; }
+.token { display:inline-block; padding:2px 4px; margin:1px; border-radius:3px; cursor:pointer; font-family:"SF Mono",Menlo,Consolas,monospace; font-size:12px; border:2px solid transparent; white-space:pre; }
+.token:hover { border-color:var(--warn); }
+.token.active { border-color:var(--warn) !important; background:rgba(245,197,66,0.25) !important; box-shadow:0 0 0 1px var(--warn); }
+.newline-mark { opacity:0.5; }
+.e0 { background:rgba(34,197,94,0.22); color:#dfffe9; }
+.e1 { background:rgba(234,179,8,0.32); color:#000; }
+.e2 { background:rgba(249,115,22,0.45); color:#fff; }
+.e3 { background:rgba(239,68,68,0.55); color:#fff; }
+.e4 { background:rgba(168,0,0,0.78); color:#fff; font-weight:bold; }
+
+/* Top-k bar rows */
+.bar-row { display:flex; align-items:center; margin:2px 0; font-size:11px; height:18px; }
+.bar-lbl { width:120px; text-align:right; padding-right:6px; font-family:"SF Mono",monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#c8d2e8; flex-shrink:0; }
+.bar-lbl.is-actual { color:var(--warn); font-weight:600; }
+.bar-outer { flex:1; height:14px; background:rgba(255,255,255,0.04); border-radius:3px; overflow:hidden; position:relative; }
+.bar-inner { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:5px; font-size:9px; color:#fff; background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+.bar-inner.is-actual { background:linear-gradient(90deg,#f5c542,#ff8c42); color:#000; font-weight:600; }
+.sec-title { font-size:12px; font-weight:600; margin:12px 0 6px; padding-bottom:3px; border-bottom:1px solid var(--border2); color:#c0c8dc; display:flex; justify-content:space-between; align-items:center; }
+.sec-title .hint { font-size:10px; color:var(--muted); font-weight:normal; }
+
+/* Summary card */
+.summary { background:rgba(255,255,255,0.03); border-radius:5px; padding:8px 10px; margin-bottom:6px; font-size:12px; }
+.summary .row { display:flex; justify-content:space-between; margin:3px 0; }
+.summary .row code { background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:2px; }
+
+/* Entropy histogram (fixed buckets) */
+.ent-hist { margin:6px 0; }
+.ent-hist-bars { display:flex; gap:3px; align-items:flex-end; height:50px; }
+.ent-hist-bar { flex:1; background:rgba(67,97,238,0.55); border-radius:2px 2px 0 0; min-height:2px; position:relative; transition:background 0.15s; }
+.ent-hist-bar:hover { background:var(--accent); }
+.ent-hist-bar.b1 { background:rgba(234,179,8,0.5); }
+.ent-hist-bar.b2 { background:rgba(249,115,22,0.55); }
+.ent-hist-bar.b3 { background:rgba(239,68,68,0.6); }
+.ent-hist-bar.b4 { background:rgba(168,0,0,0.7); }
+.ent-hist-lbls { display:flex; gap:3px; margin-top:2px; }
+.ent-hist-lbls > div { flex:1; font-size:9px; color:var(--muted); text-align:center; }
+
+/* Rolling mean curve */
+.rolling-svg { width:100%; height:60px; display:block; }
+.rolling-bg { fill:rgba(255,255,255,0.02); }
+
+/* High-entropy token list */
+.high-ent-list { max-height:160px; overflow-y:auto; font-size:11px; }
+.high-ent-row { display:flex; gap:6px; padding:2px 4px; cursor:pointer; border-radius:3px; align-items:center; }
+.high-ent-row:hover { background:rgba(255,255,255,0.06); }
+.high-ent-row .idx { color:var(--muted); width:42px; font-family:monospace; flex-shrink:0; }
+.high-ent-row .tok { font-family:"SF Mono",monospace; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; padding:1px 4px; border-radius:2px; }
+.high-ent-row .ent { color:var(--warn); font-family:monospace; width:50px; text-align:right; flex-shrink:0; }
+
+/* Compare across models */
+.compare-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:6px; }
+.compare-cell { font-size:10px; padding:6px 5px; background:rgba(255,255,255,0.03); border-radius:4px; cursor:pointer; transition:background 0.15s; border:1px solid transparent; }
+.compare-cell:hover { background:rgba(255,255,255,0.08); border-color:var(--border2); }
+.compare-cell.current { border-color:var(--accent); background:rgba(67,97,238,0.15); }
+.compare-cell .name { color:var(--muted); font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.compare-cell .val { font-size:15px; font-weight:600; margin:2px 0; font-family:monospace; }
+.compare-cell .tok { font-family:"SF Mono",monospace; font-size:10px; padding:1px 4px; border-radius:2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; display:inline-block; white-space:pre; }
+
+/* Bottom curve (entropy timeline) */
+.bottom-chart { background:var(--bg2); border-top:1px solid var(--border); padding:8px 12px; }
+.bottom-chart .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:11px; color:var(--muted); }
+.bottom-chart .legend { display:flex; gap:10px; flex-wrap:wrap; font-size:10px; }
+.bottom-chart .legend span { display:flex; align-items:center; gap:4px; cursor:pointer; user-select:none; padding:2px 5px; border-radius:3px; }
+.bottom-chart .legend span:hover { background:rgba(255,255,255,0.05); }
+.bottom-chart .legend span.off { opacity:0.35; }
+.bottom-chart .legend .swatch { width:10px; height:3px; border-radius:1px; }
+#timeline-svg { width:100%; height:120px; display:block; background:rgba(0,0,0,0.15); border-radius:3px; }
+
+/* Overview */
+.overview { padding:18px; overflow-y:auto; height:calc(100vh - 95px); }
+.overview h2 { font-size:13px; color:var(--muted); margin:0 0 8px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.overview .panel { background:var(--bg2); border-radius:6px; padding:14px; margin-bottom:14px; border:1px solid var(--border); }
+.matrix-table { border-collapse:collapse; width:100%; font-size:11px; }
+.matrix-table th, .matrix-table td { padding:6px 4px; text-align:center; border:1px solid var(--border); }
+.matrix-table th { background:rgba(255,255,255,0.04); font-weight:600; color:var(--muted); }
+.matrix-table th.row-h { text-align:right; padding-right:10px; font-family:"SF Mono",monospace; }
+.matrix-cell { cursor:pointer; transition:transform 0.1s; }
+.matrix-cell:hover { transform:scale(1.02); outline:2px solid var(--warn); position:relative; z-index:1; }
+.matrix-cell .v1 { font-size:13px; font-weight:600; }
+.matrix-cell .v2 { font-size:10px; opacity:0.85; margin-top:1px; }
+.summary-bars { display:flex; flex-direction:column; gap:5px; }
+.sb-row { display:flex; align-items:center; gap:8px; font-size:11px; }
+.sb-row .nm { width:200px; font-family:"SF Mono",monospace; text-align:right; padding-right:6px; flex-shrink:0; }
+.sb-row .bo { flex:1; height:14px; background:rgba(255,255,255,0.04); border-radius:3px; overflow:hidden; }
+.sb-row .bi { height:100%; padding-left:5px; font-size:10px; color:#fff; display:flex; align-items:center; }
+.sb-row .v { width:60px; font-family:monospace; text-align:right; color:var(--muted); flex-shrink:0; }
+
+/* Empty / loading state */
+.loading { padding:60px 20px; text-align:center; color:var(--muted); }
+.loading .err { color:var(--err); margin-bottom:14px; font-size:14px; }
+.loading code.cmd { display:block; background:rgba(0,0,0,0.35); border-radius:4px; padding:10px 14px; margin:8px auto; max-width:520px; font-size:12px; text-align:left; color:#cad8ec; white-space:pre-wrap; }
+.loading a { color:var(--accent); }
+
+/* Resp text panel */
+.resp-text-box { max-height:240px; overflow:auto; background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:4px; font-family:"SF Mono",monospace; font-size:11px; white-space:pre-wrap; color:#c8d2e8; }
+.resp-text-box.collapsed { max-height:0; padding:0; overflow:hidden; }
+
+/* Kbd hint */
+.kbd { font-family:"SF Mono",monospace; font-size:10px; padding:1px 4px; border-radius:3px; background:rgba(255,255,255,0.08); border:1px solid var(--border2); }
+
+/* Responsive */
+@media (max-width:760px) {
+  .main { flex-direction:column; height:auto; }
+  .left, .right { width:100% !important; }
+  .splitter { display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>多模型逐 Token 熵对比 — 数学推理</h1>
+  <span class="info" id="info-bar"></span>
+  <div class="view-switch">
+    <button id="view-overview">概览</button>
+    <button id="view-detail" class="active">详情</button>
+  </div>
+</div>
+
+<div class="approx-note" id="approx-note">
+  注：熵为 top-K 近似（剩余质量按词表均匀分布估算），K 与词表大小见每模型 tab tooltip。
+</div>
+
+<!-- Detail mode -->
+<div id="detail-wrap">
+  <div class="tabs" id="model-tabs"></div>
+  <div class="q-tabs" id="q-tabs"></div>
+  <div class="main" id="main">
+    <div class="left" id="left-panel" style="width:55%;"></div>
+    <div class="splitter" id="splitter"></div>
+    <div class="right" id="right-panel">
+      <div class="loading">点击左侧任意 token 查看详情。</div>
+    </div>
+  </div>
+  <div class="bottom-chart" id="bottom-chart" style="display:none;">
+    <div class="head">
+      <span>熵-位置曲线（当前题，所有模型叠加；点击 token idx 跳转）</span>
+      <div class="legend" id="timeline-legend"></div>
+    </div>
+    <svg id="timeline-svg"></svg>
+  </div>
+</div>
+
+<!-- Overview mode -->
+<div id="overview-wrap" style="display:none;">
+  <div class="overview" id="overview-content"></div>
+</div>
+
+<!-- Initial empty state goes here -->
+<div id="empty-state" style="display:none;">
+  <div class="loading">
+    <div class="err" id="empty-err">未找到 <code>entropy_all_models.json</code></div>
+    <div>先生成评测数据：</div>
+    <code class="cmd">conda activate verl
+cd recipe/entropy_vis
+bash run_eval.sh
+# 或：MODELS="Qwen2.5-3B-Instruct" N_PROBLEMS=2 bash run_eval.sh</code>
+    <div style="margin-top:10px;">然后用静态服务器打开本页：<code>python -m http.server 8000</code></div>
+    <div style="margin-top:6px;font-size:11px;">详见 <code>recipe/entropy_vis/README.md</code></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ───────────────────────── state ─────────────────────────
+let DATA = null;
+let curModel = 0;
+let curQ = 0;
+let curTokIdx = -1;
+let curView = "detail";  // "detail" | "overview"
+let timelineHidden = new Set();  // model indices to hide in timeline
+
+// ───────────────────────── load ─────────────────────────
+fetch("entropy_all_models.json")
+  .then(r => {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  })
+  .then(d => { DATA = d; init(); })
+  .catch(e => {
+    document.getElementById("detail-wrap").style.display = "none";
+    document.getElementById("overview-wrap").style.display = "none";
+    document.getElementById("empty-state").style.display = "block";
+    document.getElementById("empty-err").textContent = "加载失败: " + e.message;
+  });
+
+// ───────────────────────── utils ─────────────────────────
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function tokLabel(s) {
+  return esc(s).replace(/\n/g, '<span class="newline-mark">↵</span>\n');
+}
+function entClass(e) {
+  if (e > 10) return "e4";
+  if (e > 5)  return "e3";
+  if (e > 3)  return "e2";
+  if (e > 1.5) return "e1";
+  return "e0";
+}
+function entColor(e) {
+  if (e > 10) return "rgba(168,0,0,0.78)";
+  if (e > 5)  return "rgba(239,68,68,0.7)";
+  if (e > 3)  return "rgba(249,115,22,0.6)";
+  if (e > 1.5) return "rgba(234,179,8,0.6)";
+  return "rgba(34,197,94,0.5)";
+}
+function modelColor(i) {
+  const palette = ["#4361ee", "#e94560", "#4ecca3", "#f5c542", "#a259ff", "#ff8c42", "#22d3ee", "#f472b6", "#84cc16"];
+  return palette[i % palette.length];
+}
+function mean(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function copyText(s) {
+  navigator.clipboard.writeText(s).then(
+    () => toast("已复制"),
+    () => toast("复制失败")
+  );
+}
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.style.cssText = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 16px;border-radius:5px;font-size:12px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4);";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = "none"; }, 1500);
+}
+
+// ───────────────────────── init ─────────────────────────
+function init() {
+  if (DATA.meta && DATA.meta.approx_entropy) {
+    document.getElementById("approx-note").style.display = "block";
+  }
+
+  renderModelTabs();
+  renderQTabs();
+
+  const nM = DATA.models.length, nQ = DATA.problems.length;
+  let totalTok = 0;
+  DATA.models.forEach(m => m.problems.forEach(p => totalTok += p.tokens.length));
+  document.getElementById("info-bar").innerHTML =
+    `${nM} 模型 × ${nQ} 题 · ${totalTok.toLocaleString()} tokens · ` +
+    `<span class="kbd">←→</span> token <span class="kbd">[ ]</span> 题 <span class="kbd">1-9</span> 模型 <span class="kbd">v</span> 视图`;
+
+  document.getElementById("view-overview").onclick = () => setView("overview");
+  document.getElementById("view-detail").onclick   = () => setView("detail");
+
+  setupSplitter();
+  setupKeyboard();
+
+  selectModel(0, false);
+  selectQ(0);
+}
+
+function renderModelTabs() {
+  let html = "";
+  DATA.models.forEach((m, i) => {
+    const K = m.top_k_used || (m.problems[0]?.tokens[0]?.topk?.length ?? "?");
+    const V = m.vocab_size || "?";
+    const corr = m.problems.filter(p => p.correct).length;
+    html += `<span class="tab ${i===0?'active':''}" title="top-K=${K}, vocab=${V}" data-mi="${i}">${esc(m.name)}<span class="badge">${corr}/${m.problems.length}</span></span>`;
+  });
+  const el = document.getElementById("model-tabs");
+  el.innerHTML = html;
+  el.querySelectorAll(".tab").forEach(t => t.onclick = () => selectModel(+t.dataset.mi));
+}
+
+function renderQTabs() {
+  let html = "";
+  DATA.problems.forEach((p, i) => {
+    // verdict 标记当前模型；之后 selectModel 会刷新
+    html += `<span class="q-tab ${i===0?'active':''}" data-qi="${i}"><b>Q${i}</b><span class="v" id="q-v-${i}"></span></span>`;
+  });
+  const el = document.getElementById("q-tabs");
+  el.innerHTML = html;
+  el.querySelectorAll(".q-tab").forEach(t => t.onclick = () => selectQ(+t.dataset.qi));
+}
+
+function updateQTabsForModel() {
+  const m = DATA.models[curModel];
+  m.problems.forEach((p, i) => {
+    const el = document.getElementById("q-v-" + i);
+    if (el) el.textContent = p.correct ? "✓" : "✗";
+    if (el) el.style.color = p.correct ? "var(--ok)" : "var(--err)";
+  });
+}
+
+function selectModel(i, rerenderRight = true) {
+  curModel = i;
+  document.querySelectorAll("#model-tabs .tab").forEach((el, j) => el.classList.toggle("active", j === i));
+  updateQTabsForModel();
+  renderLeft();
+  if (rerenderRight && curTokIdx >= 0) renderRight(curTokIdx);
+  renderTimeline();
+}
+
+function selectQ(i) {
+  curQ = i;
+  curTokIdx = -1;
+  document.querySelectorAll("#q-tabs .q-tab").forEach((el, j) => el.classList.toggle("active", j === i));
+  renderLeft();
+  document.getElementById("right-panel").innerHTML = '<div class="loading">点击左侧任意 token 查看详情。</div>';
+  renderTimeline();
+}
+
+function setView(v) {
+  curView = v;
+  document.getElementById("view-overview").classList.toggle("active", v === "overview");
+  document.getElementById("view-detail").classList.toggle("active", v === "detail");
+  document.getElementById("overview-wrap").style.display = v === "overview" ? "block" : "none";
+  document.getElementById("detail-wrap").style.display = v === "overview" ? "none" : "block";
+  if (v === "overview") renderOverview();
+}
+
+// ───────────────────────── left panel (detail) ─────────────────────────
+function renderLeft() {
+  const m = DATA.models[curModel];
+  const probData = m.problems[curQ];
+  const prob = DATA.problems[curQ];
+  const tokens = probData.tokens;
+
+  if (!tokens.length) {
+    document.getElementById("left-panel").innerHTML = '<div class="loading">该模型/题没有 token 数据。</div>';
+    return;
+  }
+
+  const ents = tokens.map(t => t.entropy);
+  const entMean = mean(ents).toFixed(3);
+  const entMax = Math.max(...ents).toFixed(2);
+  const entHigh = tokens.filter(t => t.entropy > 2).length;
+  const entVeryHigh = tokens.filter(t => t.entropy > 5).length;
+
+  let html = "";
+
+  // Problem box with collapse
+  html += `<div class="problem-box collapsed" id="problem-box">
+    <b>题目</b> ${esc(prob.question)}<br>
+    <b>答案</b> <code>${esc(prob.ground_truth)}</code>
+    <button class="expand-btn" id="prob-toggle">展开</button>
+  </div>`;
+
+  html += `<div>
+    <span class="verdict ${probData.correct?'correct':'wrong'}">${probData.correct?'✓ 正确':'✗ 错误'} — 提取: ${esc(probData.extracted_answer||'(无)')}</span>
+    <span class="actions">
+      <button id="btn-copy-resp">复制 response</button>
+      <button id="btn-toggle-resp">查看完整 response ▾</button>
+    </span>
+  </div>`;
+
+  html += `<div class="resp-text-box collapsed" id="resp-text-box">${esc(probData.response_text||"")}</div>`;
+
+  // Stats
+  html += `<div class="stats">
+    <span>${probData.response_len} tokens</span>
+    <span>熵均值: <b>${entMean}</b></span>
+    <span>最大: <b>${entMax}</b></span>
+    <span>熵&gt;2: <b>${entHigh}</b> (${(entHigh/tokens.length*100).toFixed(0)}%)</span>
+    <span>熵&gt;5: <b>${entVeryHigh}</b></span>
+  </div>`;
+
+  // Fixed-bucket histogram
+  const buckets = [
+    { lo:0,   hi:0.5, lbl:"0–0.5", cls:"" },
+    { lo:0.5, hi:1,   lbl:"0.5–1", cls:"" },
+    { lo:1,   hi:2,   lbl:"1–2",   cls:"b1" },
+    { lo:2,   hi:3,   lbl:"2–3",   cls:"b2" },
+    { lo:3,   hi:5,   lbl:"3–5",   cls:"b3" },
+    { lo:5,   hi:10,  lbl:"5–10",  cls:"b4" },
+    { lo:10,  hi:Infinity, lbl:"10+", cls:"b4" },
+  ];
+  const counts = buckets.map(b => tokens.filter(t => t.entropy >= b.lo && t.entropy < b.hi).length);
+  const cMax = Math.max(1, ...counts);
+  html += `<div class="sec-title">熵分布 <span class="hint">${tokens.length} tokens</span></div>`;
+  html += `<div class="ent-hist"><div class="ent-hist-bars">`;
+  counts.forEach((c, i) => {
+    const h = c / cMax * 100;
+    html += `<div class="ent-hist-bar ${buckets[i].cls}" style="height:${Math.max(2,h)}%;" title="${buckets[i].lbl}: ${c}"></div>`;
+  });
+  html += `</div><div class="ent-hist-lbls">`;
+  buckets.forEach((b, i) => html += `<div>${b.lbl}<br><span style="color:#aaa">${counts[i]}</span></div>`);
+  html += `</div></div>`;
+
+  // Rolling mean curve
+  html += `<div class="sec-title">熵滚动均值 <span class="hint">window=${Math.min(32, Math.max(8, Math.round(tokens.length/40)))}</span></div>`;
+  html += renderRollingSVG(ents);
+
+  // High-entropy token list
+  const topN = 15;
+  const sorted = tokens.map((t, i) => ({ ...t, _i:i })).sort((a,b) => b.entropy - a.entropy).slice(0, topN);
+  html += `<div class="sec-title">高熵 token Top-${topN} <span class="hint">点击跳转</span></div>`;
+  html += `<div class="high-ent-list">`;
+  sorted.forEach(t => {
+    html += `<div class="high-ent-row" data-jump="${t._i}">
+      <span class="idx">#${t._i}</span>
+      <span class="tok ${entClass(t.entropy)}">${tokLabel(t.token)}</span>
+      <span class="ent">${t.entropy.toFixed(2)}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Tokens stream
+  html += `<div class="sec-title">Token 流 <span class="hint">点击 token 看详情，<span class="kbd">←→</span> 移动</span></div>`;
+  html += `<div class="tok-stream">`;
+  tokens.forEach((t, i) => {
+    const ec = entClass(t.entropy);
+    const lbl = tokLabel(t.token);
+    html += `<span class="token ${ec}" id="tok${i}" data-idx="${i}" title="#${i} ent=${t.entropy.toFixed(3)} p=${(t.actual_prob*100).toFixed(2)}%">${lbl}</span>`;
+  });
+  html += `</div>`;
+
+  const lp = document.getElementById("left-panel");
+  lp.innerHTML = html;
+
+  // Wire buttons
+  document.getElementById("prob-toggle").onclick = (e) => {
+    e.stopPropagation();
+    const pb = document.getElementById("problem-box");
+    pb.classList.toggle("collapsed");
+    e.target.textContent = pb.classList.contains("collapsed") ? "展开" : "收起";
+  };
+  document.getElementById("btn-copy-resp").onclick = () => copyText(probData.response_text || "");
+  document.getElementById("btn-toggle-resp").onclick = (e) => {
+    const rb = document.getElementById("resp-text-box");
+    rb.classList.toggle("collapsed");
+    e.target.textContent = rb.classList.contains("collapsed") ? "查看完整 response ▾" : "收起 response ▴";
+  };
+  lp.querySelectorAll(".high-ent-row").forEach(el => {
+    el.onclick = () => selectToken(+el.dataset.jump);
+  });
+
+  // Re-select previous token if still valid
+  if (curTokIdx >= 0 && curTokIdx < tokens.length) {
+    const el = document.getElementById("tok" + curTokIdx);
+    if (el) el.classList.add("active");
+  }
+}
+
+function renderRollingSVG(ents) {
+  const W = 360, H = 60, pad = 4;
+  const w = Math.max(8, Math.min(32, Math.round(ents.length / 40)));
+  const rolling = [];
+  let s = 0;
+  for (let i = 0; i < ents.length; i++) {
+    s += ents[i];
+    if (i >= w) s -= ents[i - w];
+    rolling.push(s / Math.min(i + 1, w));
+  }
+  const eMax = Math.max(1, ...rolling);
+  const pts = rolling.map((v, i) => {
+    const x = pad + (W - 2*pad) * (i / Math.max(1, ents.length - 1));
+    const y = H - pad - (H - 2*pad) * (v / eMax);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const fillPts = `${pad},${H-pad} ${pts} ${W-pad},${H-pad}`;
+  return `<svg class="rolling-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <rect class="rolling-bg" x="0" y="0" width="${W}" height="${H}"/>
+    <polygon points="${fillPts}" fill="rgba(67,97,238,0.25)"/>
+    <polyline points="${pts}" fill="none" stroke="#4361ee" stroke-width="1.4"/>
+    <text x="${pad+2}" y="11" fill="#8892b0" font-size="9">max=${eMax.toFixed(2)}</text>
+  </svg>`;
+}
+
+// ───────────────────────── right panel (token detail) ─────────────────────────
+function selectToken(idx) {
+  const tokens = DATA.models[curModel].problems[curQ].tokens;
+  if (idx < 0 || idx >= tokens.length) return;
+  curTokIdx = idx;
+  document.querySelectorAll(".token.active").forEach(el => el.classList.remove("active"));
+  const el = document.getElementById("tok" + idx);
+  if (el) {
+    el.classList.add("active");
+    el.scrollIntoView({ block:"nearest", behavior:"smooth" });
+  }
+  renderRight(idx);
+}
+
+function renderRight(idx) {
+  const m = DATA.models[curModel];
+  const probData = m.problems[curQ];
+  const t = probData.tokens[idx];
+  if (!t) return;
+  const tl = tokLabel(t.token);
+  const K = t.topk.length;
+  const actualStr = t.token;
+
+  let html = `<div class="summary">
+    <div class="row"><b>${esc(m.name)}</b> — Q${curQ} Token #${idx}/${probData.tokens.length-1}</div>
+    <div class="row"><span>token</span><code style="white-space:pre">${tl}</code></div>
+    <div class="row"><span>熵（top-${K} 近似）</span><b>${t.entropy.toFixed(4)}</b></div>
+    <div class="row"><span>实际 token 概率</span><b>${(t.actual_prob*100).toFixed(3)}%</b></div>
+    ${t.cum_char !== undefined ? `<div class="row"><span>字符 offset</span><code>${t.cum_char}</code></div>` : ''}
+  </div>`;
+
+  // Top-K bars
+  html += `<div class="sec-title">Top-${K} 候选 <span class="hint">黄色=实际生成</span></div>`;
+  const maxP = t.topk[0]?.prob || 1;
+  for (const item of t.topk) {
+    const pct = Math.max(1, item.prob / maxP * 100);
+    const lbl = tokLabel(item.token);
+    const isActual = item.token === actualStr;
+    html += `<div class="bar-row">
+      <span class="bar-lbl ${isActual?'is-actual':''}">${lbl}</span>
+      <span class="bar-outer"><span class="bar-inner ${isActual?'is-actual':''}" style="width:${pct}%">${(item.prob*100).toFixed(2)}%</span></span>
+    </div>`;
+  }
+
+  // Cross-model compare: by token-idx (rank-aware)
+  html += `<div class="sec-title">同 token-idx 跨模型对比 <span class="hint">点击切换</span></div>`;
+  html += `<div class="compare-grid">`;
+  DATA.models.forEach((mod, mi) => {
+    const pd = mod.problems[curQ];
+    if (idx < pd.tokens.length) {
+      const tt = pd.tokens[idx];
+      const cur = (mi === curModel) ? "current" : "";
+      const color = entColor(tt.entropy);
+      html += `<div class="compare-cell ${cur}" data-mi="${mi}" title="${esc(mod.name)} ent=${tt.entropy.toFixed(3)}">
+        <div class="name">${esc(mod.name)}</div>
+        <div class="val" style="color:${color}">${tt.entropy.toFixed(2)}</div>
+        <div><span class="tok ${entClass(tt.entropy)}">${tokLabel(tt.token)}</span></div>
+      </div>`;
+    } else {
+      html += `<div class="compare-cell" data-mi="${mi}" style="opacity:0.4;">
+        <div class="name">${esc(mod.name)}</div>
+        <div class="val" style="color:#555">—</div>
+        <div style="color:#555;font-size:10px">越界</div>
+      </div>`;
+    }
+  });
+  html += `</div>`;
+
+  // Cross-model compare: by character offset (more meaningful)
+  if (t.cum_char !== undefined) {
+    html += `<div class="sec-title">同字符位置跨模型对比 <span class="hint">offset≈${t.cum_char}，自动找最近 token</span></div>`;
+    html += `<div class="compare-grid">`;
+    DATA.models.forEach((mod, mi) => {
+      const pd = mod.problems[curQ];
+      const tk = pd.tokens;
+      if (!tk.length || tk[0].cum_char === undefined) {
+        html += `<div class="compare-cell" data-mi="${mi}" style="opacity:0.4;">
+          <div class="name">${esc(mod.name)}</div>
+          <div class="val" style="color:#555">—</div>
+          <div style="color:#555;font-size:10px">无 offset</div>
+        </div>`;
+        return;
+      }
+      // 二分查找：最大 j 使得 tk[j].cum_char <= t.cum_char
+      let lo = 0, hi = tk.length - 1, j = 0;
+      while (lo <= hi) {
+        const m2 = (lo + hi) >> 1;
+        if (tk[m2].cum_char <= t.cum_char) { j = m2; lo = m2 + 1; } else hi = m2 - 1;
+      }
+      const tt = tk[j];
+      const cur = (mi === curModel) ? "current" : "";
+      const color = entColor(tt.entropy);
+      html += `<div class="compare-cell ${cur}" data-mi="${mi}" data-jump="${j}" title="${esc(mod.name)} #${j} ent=${tt.entropy.toFixed(3)} offset=${tt.cum_char}">
+        <div class="name">${esc(mod.name)} #${j}</div>
+        <div class="val" style="color:${color}">${tt.entropy.toFixed(2)}</div>
+        <div><span class="tok ${entClass(tt.entropy)}">${tokLabel(tt.token)}</span></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  const rp = document.getElementById("right-panel");
+  rp.innerHTML = html;
+  rp.querySelectorAll(".compare-cell").forEach(el => {
+    el.onclick = () => {
+      const mi = +el.dataset.mi;
+      const jump = el.dataset.jump;
+      selectModel(mi, false);
+      if (jump !== undefined) {
+        selectToken(+jump);
+      } else {
+        selectToken(idx);
+      }
+    };
+  });
+}
+
+// ───────────────────────── timeline ─────────────────────────
+function renderTimeline() {
+  const chart = document.getElementById("bottom-chart");
+  const svg = document.getElementById("timeline-svg");
+  const legend = document.getElementById("timeline-legend");
+  chart.style.display = "block";
+
+  // Collect (model, tokens-for-curQ)
+  const series = DATA.models.map((m, i) => ({
+    i, name:m.name, color:modelColor(i),
+    ents: m.problems[curQ]?.tokens?.map(t => t.entropy) || []
+  }));
+
+  const maxLen = Math.max(...series.map(s => s.ents.length), 1);
+  const maxEnt = Math.max(5, ...series.flatMap(s => s.ents));
+
+  const W = svg.clientWidth || 800, H = 120, pad = { l:30, r:10, t:6, b:18 };
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  let inner = "";
+  // grid lines (horizontal at ent=1,2,5,10)
+  [1,2,5,10].forEach(v => {
+    if (v > maxEnt) return;
+    const y = H - pad.b - (H - pad.t - pad.b) * (v / maxEnt);
+    inner += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-dasharray="2,3"/>`;
+    inner += `<text x="${pad.l-3}" y="${y+3}" text-anchor="end" fill="#666" font-size="9">${v}</text>`;
+  });
+  // x axis
+  inner += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${H-pad.b}" y2="${H-pad.b}" stroke="#444"/>`;
+  inner += `<text x="${pad.l}" y="${H-3}" fill="#666" font-size="9">0</text>`;
+  inner += `<text x="${W-pad.r}" y="${H-3}" fill="#666" font-size="9" text-anchor="end">${maxLen}</text>`;
+
+  // current-model marker for selected token
+  if (curTokIdx >= 0 && curTokIdx < series[curModel].ents.length) {
+    const x = pad.l + (W - pad.l - pad.r) * (curTokIdx / Math.max(1, maxLen-1));
+    inner += `<line x1="${x}" x2="${x}" y1="${pad.t}" y2="${H-pad.b}" stroke="${modelColor(curModel)}" stroke-width="1.2" opacity="0.55"/>`;
+    inner += `<circle cx="${x}" cy="${pad.t+4}" r="3" fill="${modelColor(curModel)}"/>`;
+  }
+
+  // polylines
+  series.forEach((s, i) => {
+    if (timelineHidden.has(i) || !s.ents.length) return;
+    const pts = s.ents.map((v, j) => {
+      const x = pad.l + (W - pad.l - pad.r) * (j / Math.max(1, maxLen-1));
+      const y = H - pad.b - (H - pad.t - pad.b) * (v / maxEnt);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const isCur = (i === curModel);
+    inner += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="${isCur?1.7:1}" opacity="${isCur?0.95:0.55}"/>`;
+  });
+
+  // click overlay
+  inner += `<rect x="${pad.l}" y="${pad.t}" width="${W-pad.l-pad.r}" height="${H-pad.t-pad.b}" fill="transparent" id="tl-click"/>`;
+
+  svg.innerHTML = inner;
+
+  // wire click
+  const overlay = svg.querySelector("#tl-click");
+  if (overlay) {
+    overlay.onclick = (e) => {
+      const rect = svg.getBoundingClientRect();
+      const px = (e.clientX - rect.left) * (W / rect.width);
+      const ratio = (px - pad.l) / (W - pad.l - pad.r);
+      const ti = Math.round(ratio * (maxLen - 1));
+      const curLen = series[curModel].ents.length;
+      if (ti >= 0 && ti < curLen) selectToken(ti);
+    };
+  }
+
+  // legend
+  let lh = "";
+  series.forEach((s, i) => {
+    const off = timelineHidden.has(i) ? "off" : "";
+    lh += `<span class="${off}" data-mi="${i}"><span class="swatch" style="background:${s.color}"></span>${esc(s.name)}</span>`;
+  });
+  legend.innerHTML = lh;
+  legend.querySelectorAll("span[data-mi]").forEach(el => {
+    el.onclick = () => {
+      const mi = +el.dataset.mi;
+      if (timelineHidden.has(mi)) timelineHidden.delete(mi); else timelineHidden.add(mi);
+      renderTimeline();
+    };
+  });
+}
+
+// ───────────────────────── overview ─────────────────────────
+function renderOverview() {
+  const wrap = document.getElementById("overview-content");
+  let html = "";
+
+  // Model summary bars: avg entropy & correctness
+  const modelStats = DATA.models.map((m, i) => {
+    const allEnts = m.problems.flatMap(p => p.tokens.map(t => t.entropy));
+    const allLens = m.problems.map(p => p.tokens.length);
+    const corr = m.problems.filter(p => p.correct).length;
+    return {
+      i, name:m.name,
+      avgEnt: mean(allEnts),
+      avgLen: mean(allLens),
+      corr, total: m.problems.length,
+      accuracy: corr / m.problems.length,
+    };
+  });
+
+  // Matrix
+  html += `<div class="panel">
+    <h2>模型 × 题 矩阵</h2>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">单元格：上=熵均值，下=tokens(✓/✗)。点击进入详情。</div>
+    <table class="matrix-table">
+      <thead><tr>
+        <th></th>${DATA.problems.map((_, qi) => `<th>Q${qi}</th>`).join("")}
+        <th style="background:rgba(67,97,238,0.15);">汇总</th>
+      </tr></thead>
+      <tbody>`;
+  DATA.models.forEach((m, mi) => {
+    html += `<tr><th class="row-h">${esc(m.name)}</th>`;
+    m.problems.forEach((p, qi) => {
+      const tEnts = p.tokens.map(t => t.entropy);
+      const e = mean(tEnts);
+      const bg = entColor(e).replace(/[0-9.]+\)$/, "0.35)");
+      html += `<td class="matrix-cell" style="background:${bg}" data-mi="${mi}" data-qi="${qi}"
+        title="${esc(m.name)} / Q${qi}: ${p.tokens.length} tokens, ent=${e.toFixed(2)}, ${p.correct?'正确':'错误'}">
+        <div class="v1" style="color:${entColor(e)}">${e.toFixed(2)}</div>
+        <div class="v2">${p.tokens.length}t / ${p.correct?'<span style="color:var(--ok)">✓</span>':'<span style="color:var(--err)">✗</span>'}</div>
+      </td>`;
+    });
+    const s = modelStats[mi];
+    html += `<td style="background:rgba(67,97,238,0.1);">
+      <div class="v1">${s.avgEnt.toFixed(2)}</div>
+      <div class="v2">acc ${(s.accuracy*100).toFixed(0)}%</div>
+    </td>`;
+    html += `</tr>`;
+  });
+  // bottom row: per-Q averages
+  html += `<tr><th class="row-h" style="background:rgba(67,97,238,0.15);">每题均值</th>`;
+  DATA.problems.forEach((_, qi) => {
+    const colEnts = DATA.models.flatMap(m => m.problems[qi]?.tokens.map(t => t.entropy) || []);
+    const e = mean(colEnts);
+    html += `<td style="background:rgba(67,97,238,0.1);">
+      <div class="v1" style="color:${entColor(e)}">${e.toFixed(2)}</div>
+    </td>`;
+  });
+  html += `<td></td></tr>`;
+  html += `</tbody></table></div>`;
+
+  // Bars: avg entropy
+  const eMax = Math.max(...modelStats.map(s => s.avgEnt));
+  html += `<div class="panel"><h2>平均熵（所有题合并）</h2><div class="summary-bars">`;
+  modelStats.forEach(s => {
+    const w = (s.avgEnt / eMax * 100).toFixed(1);
+    html += `<div class="sb-row">
+      <span class="nm">${esc(s.name)}</span>
+      <span class="bo"><span class="bi" style="width:${w}%;background:${modelColor(s.i)}">${s.avgEnt.toFixed(3)}</span></span>
+      <span class="v">${s.avgLen.toFixed(0)} tok/题</span>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // Bars: accuracy
+  html += `<div class="panel"><h2>正确率（boxed 答案 == ground_truth）</h2><div class="summary-bars">`;
+  modelStats.forEach(s => {
+    const w = (s.accuracy * 100).toFixed(1);
+    html += `<div class="sb-row">
+      <span class="nm">${esc(s.name)}</span>
+      <span class="bo"><span class="bi" style="width:${Math.max(2,w)}%;background:${modelColor(s.i)}">${s.corr}/${s.total}</span></span>
+      <span class="v">${w}%</span>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  wrap.innerHTML = html;
+  wrap.querySelectorAll(".matrix-cell").forEach(el => {
+    el.onclick = () => {
+      const mi = +el.dataset.mi, qi = +el.dataset.qi;
+      setView("detail");
+      selectModel(mi, false);
+      selectQ(qi);
+    };
+  });
+}
+
+// ───────────────────────── token click ─────────────────────────
+document.addEventListener("click", function(e) {
+  const tok = e.target.closest(".token");
+  if (!tok || !tok.dataset.idx) return;
+  selectToken(+tok.dataset.idx);
+});
+
+// ───────────────────────── splitter ─────────────────────────
+function setupSplitter() {
+  const sp = document.getElementById("splitter");
+  const left = document.getElementById("left-panel");
+  const main = document.getElementById("main");
+  let dragging = false;
+  sp.addEventListener("mousedown", () => {
+    dragging = true;
+    sp.classList.add("dragging");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const rect = main.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    const clamped = Math.max(20, Math.min(80, pct));
+    left.style.width = clamped + "%";
+  });
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
+    sp.classList.remove("dragging");
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  });
+}
+
+// ───────────────────────── keyboard ─────────────────────────
+function setupKeyboard() {
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (curView !== "detail") {
+      if (e.key === "v") setView("detail");
+      return;
+    }
+    const tokens = DATA.models[curModel].problems[curQ].tokens;
+    if (e.key === "ArrowLeft" && curTokIdx > 0) { selectToken(curTokIdx - 1); e.preventDefault(); }
+    else if (e.key === "ArrowRight" && curTokIdx < tokens.length - 1) { selectToken(curTokIdx === -1 ? 0 : curTokIdx + 1); e.preventDefault(); }
+    else if (e.key === "[" && curQ > 0) { selectQ(curQ - 1); e.preventDefault(); }
+    else if (e.key === "]" && curQ < DATA.problems.length - 1) { selectQ(curQ + 1); e.preventDefault(); }
+    else if (/^[1-9]$/.test(e.key)) {
+      const mi = +e.key - 1;
+      if (mi < DATA.models.length) { selectModel(mi); e.preventDefault(); }
+    }
+    else if (e.key === "v") { setView("overview"); }
+  });
+}
+
+// Re-render timeline on resize
+window.addEventListener("resize", () => {
+  if (curView === "detail" && DATA) renderTimeline();
+});
+</script>
+</body>
+</html>
