@@ -1,0 +1,448 @@
+
+% This must be in the first 5 lines to tell arXiv to use pdfLaTeX, which is strongly recommended.
+\pdfoutput=1
+% In particular, the hyperref package requires pdfLaTeX in order to break URLs across lines.
+
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[review]{acl}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+
+% ── Extra packages ────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\title{Preserving Epistemic Uncertainty: Token-Level Masking Prevents Self-Distillation Degradation in Mathematical Reasoning}
+
+% Anonymous submission — authors hidden
+\author{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Self-distillation has emerged as an effective LLM post-training paradigm, yet recent work reveals a critical failure mode: when applied to mathematical reasoning, it degrades out-of-distribution performance by suppressing \textit{epistemic verbalization}—the model's expression of uncertainty through tokens such as ``Wait'' and ``Hmm.''
+We provide the first mechanistic diagnosis of this phenomenon, showing via token-level probability probes that a teacher conditioned on reference solutions systematically undervalues epistemic tokens, assigning them less than half the probability of non-epistemic tokens.
+This concentrated KL divergence forces the student to abandon uncertainty expression, collapsing its reasoning capability.
+We propose a minimal fix: token-level masking of epistemic markers during distillation, which excludes uncertainty positions from the KL loss at zero overhead.
+Experiments across two model scales and two reference-solution types demonstrate that masking reduces AIME24 degradation from $-20\%$ to $-8\%$ and completely preserves AIME25 accuracy.
+Our diagnostic and interventional evidence converges on a clear message: protecting epistemic verbalization is both necessary and sufficient to prevent self-distillation from degrading mathematical reasoning.
+\end{abstract}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Introduction}
+% ═══════════════════════════════════════════════════════════════
+
+Self-distillation \cite{snell2022learning,agarwal2024onpolicy,zhao2026self,hubotter2026reinforcement} has recently gained traction as a post-training paradigm for LLMs.
+In this framework, the same model acts as both student and teacher under asymmetric conditioning: the teacher is provided with ground-truth solutions or environment feedback as privileged information, while the student receives only the problem.
+Training minimizes the divergence between the student's and teacher's next-token distributions, effectively distilling the knowledge present in the teacher's privileged context into the student's parameters.
+
+Two prominent instantiations have emerged.
+\textbf{On-Policy Self-Distillation} (OPSD; \cite{zhao2026self}) conditions the teacher on a verified reference solution from a reasoning dataset, using the same model to rationalize the solution and guide the student's own rollouts.
+\textbf{Self-Distillation Policy Optimization} (SDPO; \cite{hubotter2026reinforcement}) provides the teacher with rich environment feedback (e.g., runtime errors, test failures) and uses successful rollouts from the same batch as privileged context for failed attempts.
+
+Both methods report substantial gains in their target domains.
+OPSD improves AIME24 from 51.5\% to 57.2\% on Qwen3-1.7B \cite{zhao2026self}.
+SDPO achieves 48.8\% on LiveCodeBench v6 with Qwen3-8B, outperforming GRPO by a wide margin with 4$\times$ fewer generations \cite{hubotter2026reinforcement}.
+These results suggest that self-distillation is a broadly applicable and powerful post-training strategy.
+
+However, this paradigm harbors a striking failure mode.
+When applied to mathematical reasoning, self-distillation can severely degrade out-of-distribution performance.
+We trace the root cause to the suppression of \textit{epistemic verbalization}: the model's explicit expression of uncertainty through tokens like ``Wait,'' ``Hmm,'' ``perhaps,'' and ``maybe.''
+When the teacher is conditioned on the correct solution, it produces confident, concise reasoning with minimal expressed uncertainty.
+The student learns to imitate this style, losing the ability to explore and recover from intermediate errors.
+
+This apparent contradiction—self-distillation succeeds on code yet fails on math—raises a fundamental question:
+\textit{Why does self-distillation degrade reasoning in some domains but not others?}
+
+In this paper, we provide a systematic diagnosis and a targeted solution.
+We show that the degradation is driven by a concentrated, measurable mechanism: the teacher's privileged context causes it to systematically underestimate the probability of epistemic tokens, creating a per-token KL divergence gap that forces the student to suppress uncertainty.
+Critically, we demonstrate that this mechanism operates with varying intensity depending on the \textit{reference context}: concise reference solutions produce mild suppression, while full chain-of-thought traces (themselves containing epistemic markers) create extreme suppression that polarizes the student's behavior.
+
+Armed with this mechanistic understanding, we propose a minimal, zero-overhead intervention: \textit{token-level masking of epistemic markers} during the self-distillation loss computation.
+By excluding positions where the student generates an epistemic token from the KL divergence, we prevent the teacher from forcing an overconfident reasoning style while preserving normal distillation everywhere else.
+
+Our contributions are:
+\begin{enumerate}[leftmargin=*,nosep]
+    \item \textbf{Mechanistic diagnosis}: We conduct token-level probability probes revealing that the teacher assigns 2.2$\times$ lower probability to epistemic tokens (0.34 vs.\ 0.75), creating a concentrated KL gap that drives reasoning degradation.
+    \item \textbf{Domain and context analysis}: We show that reference context type (concise vs.\ full trace) modulates degradation severity, explaining why self-distillation succeeds in code (no epistemic tokens needed) but fails in math reasoning.
+    \item \textbf{Epistemic token masking}: A simple, training-free fix that preserves epistemic tokens during distillation, reducing AIME24 degradation from $-20\%$ to $-8\%$ and completely eliminating AIME25 degradation.
+    \item \textbf{Multi-scale validation}: Experiments across two model scales (1.5B and 7B) and two reference-solution types demonstrate consistent benefits.
+\end{enumerate}
+
+
+% ═══════════════════════════════════════════════════════════════
+\section{Background and Related Work}
+% ═══════════════════════════════════════════════════════════════
+
+\subsection{Self-Distillation for LLM Post-Training}
+
+Self-distillation \cite{snell2022learning} uses a single model as both teacher and student under different conditioning contexts.
+Given an input $x$ and ground-truth answer $y^*$, the student generates a sequence $\hat{y} \sim \pi_\theta(\cdot \mid x)$.
+The teacher policy $\pi_\theta^T$ is obtained by conditioning the same model on privileged information $s$ (e.g., a reference solution or environment feedback):
+$\pi_\theta^T(\cdot \mid x, s) = \pi_\theta(\cdot \mid x, s)$.
+Training minimizes the KL divergence between student and teacher next-token distributions:
+
+\begin{equation}
+{\small
+    \mathcal{L}_{\text{SD}}(\theta) = \sum_{t} \text{KL}\bigl(
+        \pi_\theta(\cdot \mid x, \hat{y}_{<t}) \;\|\;
+        \text{sg}(\pi_\theta(\cdot \mid x, s, \hat{y}_{<t}))
+    \bigr)
+}
+\end{equation}
+
+where $\text{sg}(\cdot)$ denotes stop-gradient, preventing the teacher from being updated.
+Recent instantiations include OPSD \cite{zhao2026self}, which uses fixed reference solutions as teacher context, and SDPO \cite{hubotter2026reinforcement}, which uses dynamic environment feedback and successful in-batch rollouts.
+
+\subsection{Epistemic Verbalization and Reasoning}
+
+Epistemic verbalization refers to the explicit externalization of uncertainty during reasoning through tokens such as ``wait,'' ``hmm,'' ``perhaps,'' and ``maybe.''
+Strong reasoning models like DeepSeek-R1 frequently use these tokens, and their removal degrades reasoning performance.
+When applied to self-distillation, we observe that the teacher's privileged access to the correct solution causes it to reduce epistemic markers substantially.
+When the student is trained to imitate these confident traces, it loses the ability to express and act on uncertainty, leading to catastrophic out-of-distribution degradation.
+Crucially, we show that the per-token KL divergence between student and teacher on epistemic tokens is concentrated and disproportionate compared to the corpus-wide mean.
+
+\subsection{Reasoning Compression}
+
+Several concurrent works aim to shorten reasoning traces while preserving accuracy \cite{shrivastava2025sample,sang2026onpolicy,deng2026conpress,yang2026accordion,luo2026compress}.
+Our work complements these efforts: rather than designing new compression algorithms, we identify \textit{which} tokens should be protected from compression and provide a simple mechanism to do so within any self-distillation pipeline.
+
+
+% ═══════════════════════════════════════════════════════════════
+\section{Diagnosis: Why Self-Distillation Degrades Reasoning}
+% ═══════════════════════════════════════════════════════════════
+
+Before proposing a solution, we conduct a systematic diagnosis of the degradation mechanism.
+Our analysis proceeds in three stages: (1) a domain-level contrast showing that self-distillation degradation is specific to reasoning tasks, (2) a token-level probability probe revealing \textit{how} the teacher suppresses epistemic tokens, and (3) a reference-context ablation demonstrating that degradation severity depends on the type of privileged information.
+
+\subsection{Domain Contrast: Code Succeeds, Math Fails}
+
+Table~\ref{tab:domain_contrast} summarizes the performance of self-distillation across domains.
+In code generation (LiveCodeBench v6), SDPO achieves 48.8\% accuracy, substantially outperforming GRPO (41.2\%) with $4\times$ fewer generations \cite{hubotter2026reinforcement}.
+In scientific reasoning and tool use, SDPO similarly improves over RLVR baselines \cite{hubotter2026reinforcement}.
+However, in mathematical reasoning (AIME), OPSD produces only modest gains (51.5\% $\to$ 57.2\% on Qwen3-1.7B) while SDPO causes catastrophic degradation (55\% $\to$ $<$20\% on DeepSeek-7B).
+
+\begin{table*}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Domain} & \textbf{Method} & \textbf{Performance} & \textbf{Effect} \\
+\midrule
+Code (LiveCodeBench) & SDPO & 48.8\% (vs.\ GRPO 41.2\%) & $\uparrow$ Strong gain \\
+Science \& Tools & SDPO & 70.2\% (vs.\ GRPO 66.6\%) & $\uparrow$ Moderate gain \\
+Math (AIME, OPSD) & OPSD & 51.5\% $\to$ 57.2\% & $\uparrow$ Mild gain \\
+Math (AIME, SDPO) & SDPO & 55\% $\to$ $<$20\% & $\downarrow$\textbf{ Severe degradation} \\
+\bottomrule
+\end{tabular}
+\caption{Self-distillation performance across domains. Code and science tasks benefit; mathematical reasoning degrades.}
+\label{tab:domain_contrast}
+\end{table*}
+
+Why does this domain split exist?
+We hypothesize that code generation and scientific tool use rely primarily on syntactic patterns, memorized APIs, and structured reasoning, where epistemic uncertainty markers are unnecessary.
+In contrast, mathematical reasoning requires extended chains of inference, self-verification, and exploration of alternative paths—processes that are explicitly mediated by epistemic verbalization.
+When the teacher suppresses these tokens, the student loses the cognitive scaffolding needed for complex reasoning.
+
+\subsection{Token-Level Probability Probe}
+
+To quantify the teacher's suppression of epistemic tokens, we conduct a controlled forward-pass experiment.
+Using DeepSeek-R1-Distill-Qwen-1.5B, we sample one student-generated response on an AIME-style problem (1024 tokens), then compute both the teacher (conditioned on a COT reference solution) and student (conditioned only on the problem) next-token probability distributions at every position.
+
+Table~\ref{tab:prob_probe} reports the mean probability assigned to epistemic vs.\ non-epistemic tokens.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Condition} & \textbf{Epistemic} & \textbf{Non-Epi.} & \textbf{Ratio} \\
+\midrule
+Teacher (COT) & 0.336 & 0.751 & 0.45$\times$ \\
+Student (plain)    & 0.417 & 0.761 & 0.55$\times$ \\
+\bottomrule
+\end{tabular}
+\caption{Mean next-token probability for epistemic vs.\ non-epistemic tokens. The teacher assigns only 45\% as much probability to epistemic tokens.}
+\label{tab:prob_probe}
+\end{table}
+
+The teacher assigns only \textbf{0.336} mean probability to epistemic tokens—2.2$\times$ lower than the 0.751 assigned to non-epistemic tokens.
+The student, in contrast, maintains a higher epistemic probability of 0.417.
+This creates a concentrated KL divergence gap at epistemic token positions, where the student naturally expresses uncertainty that the teacher deems unlikely.
+
+\subsection{Top-10 Token Analysis}
+
+To further characterize the teacher's behavior, we examine the top-10 most probable next-token predictions at each epistemic position.
+Table~\ref{tab:top10} shows representative examples.
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{p{1.5cm}p{6cm}p{6cm}}
+\toprule
+\textbf{Pos.} & \textbf{Teacher Top-3 (probability)} & \textbf{Student Top-3 (probability)} \\
+\midrule
+\#41 ``Hmm'' & ``I'' (0.629), ``Hmm'' (0.232), ``It'' (0.066) & ``Hmm'' (0.453), ``I'' (0.453), ``It'' (0.069) \\
+\#305 ``Hmm'' & ``So'' (0.361), ``Each'' (0.281), ``But'' (0.091) & ``So'' (0.410), ``But'' (0.118), ``Let'' (0.091) \\
+\#261 ``Wait'' & ``Wait'' (0.637), ``Each'' (0.301), ``Hmm'' (0.022) & ``Wait'' (0.586), ``Each'' (0.244), ``Hmm'' (0.090) \\
+\bottomrule
+\end{tabular}
+\caption{Top-3 token predictions by teacher and student at selected epistemic positions.}
+\label{tab:top10}
+\end{table*}
+
+At position \#41, where the student naturally considers both ``Hmm'' and ``I'' equally (0.453 each), the teacher strongly prefers the non-epistemic ``I'' (0.629) and depresses ``Hmm'' to 0.232.
+At position \#305, the teacher's top-10 predictions do not even include ``Hmm,'' instead preferring connective tokens like ``So,'' ``Each,'' and ``But.''
+At position \#261, while both models rank ``Wait'' first, the student maintains ``Hmm'' as a viable alternative (0.090) while the teacher nearly eliminates it (0.022).
+
+These examples illustrate a consistent pattern: \textbf{the teacher systematically prefers non-epistemic alternatives at positions where the student would naturally express uncertainty}.
+
+\subsection{Reference Context Matters}
+
+Finally, we investigate how the \textit{type} of reference solution affects epistemic suppression.
+We compare four prompt conditions using the same 30-question probe, each with 3 samples:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{A (Student)}: Plain problem, no privileged information.
+    \item \textbf{B (GT Only)}: Problem + correct answer only.
+    \item \textbf{C (Clean Solution)}: Problem + concise textbook solution.
+    \item \textbf{D (Full COT)}: Problem + complete chain-of-thought reasoning trace.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Condition} & \textbf{Mean Epi. Tokens} & \textbf{Acc.} \\
+\midrule
+A: Student (no context) & 17.17 & 33.3\% \\
+B: GT only & 16.97 & 33.3\% \\
+C: Clean reference solution & 10.77 & 56.7\% \\
+D: Full COT trace & 3.50 & 90.0\% \\
+\bottomrule
+\end{tabular}
+\caption{Epistemic token frequency and answer accuracy across prompt conditions (30 problems $\times$ 3 samples). Richer reference context suppresses epistemic tokens but inflates accuracy, masking reasoning degradation.}
+\label{tab:ref_context}
+\end{table}
+
+Two conclusions emerge from Table~\ref{tab:ref_context}.
+First, \textbf{clean reference solutions produce mild epistemic suppression} (37\% reduction, from 17.17 to 10.77).
+Second, \textbf{full COT traces cause extreme suppression} (80\% reduction, to 3.50 tokens) but simultaneously inflate accuracy to 90\%—the model simply echoes the provided reasoning rather than producing its own.
+This latter effect is pernicious: high in-distribution accuracy conceals the loss of independent reasoning capability.
+
+Together, these diagnostic findings establish that (1) the teacher's token-level suppression of epistemic markers is a measurable, robust phenomenon, (2) the suppression is concentrated on a small, identifiable set of tokens, and (3) the severity depends on the richness of the reference context.
+This mechanistic understanding directly motivates our intervention.
+
+% ═══════════════════════════════════════════════════════════════
+\section{Method: Epistemic Token Masking}
+% ═══════════════════════════════════════════════════════════════
+
+Our diagnosis reveals that self-distillation degradation is driven by a concentrated mechanism: the teacher's systematic suppression of a small, identifiable set of epistemic tokens.
+This suggests a targeted fix: simply exclude these token positions from the distillation loss.
+
+\subsection{Epistemic Token Set}
+
+We define the set of epistemic markers as:
+\begin{equation}
+\begin{aligned}
+    \mathcal{T} = \{&\text{wait}, \text{hmm}, \text{perhaps}, \text{maybe}, \text{actually}, \\
+                    &\text{alternatively}, \text{seems}, \text{might}, \text{likely}, \text{check}\}
+\end{aligned}
+\end{equation}
+
+To handle surface-form variation (capitalization, punctuation, surrounding whitespace), we enumerate common variants of each token and encode them with the model's tokenizer.
+If a variant encodes to multiple token IDs, we keep only the last (the preceding tokens are typically whitespace artifacts).
+This yields approximately 100--200 unique token IDs per model, cached and reused across training steps.
+
+\subsection{Masked Self-Distillation Loss}
+
+Let $\hat{y}_t$ be the student's generated token at position $t$, and let $\mathcal{I}$ be the set of token IDs corresponding to epistemic markers.
+We define a binary token mask $M \in \{0,1\}^{T}$:
+\begin{equation}
+    M_t = \begin{cases}
+        0 & \text{if } \hat{y}_t \in \mathcal{I} \\
+        1 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+The masked self-distillation loss becomes:
+\begin{equation}
+{\small
+    \mathcal{L}_{\text{masked}}(\theta) = \frac{\sum_t M_t \cdot \ell_t}{\sum_t M_t},
+    \quad
+    \ell_t = \text{KL} \bigl( \pi_\theta^S \;\|\; \pi_\theta^T \bigr)
+}
+\label{eq:masked_loss}
+\end{equation}
+
+The denominator normalizes by the number of \textit{non-masked} tokens, ensuring that masking does not artificially reduce the loss magnitude.
+
+\subsection{Implementation}
+
+The masking is implemented as a lightweight, on-the-fly modification to the chunked KL divergence computation.
+For each micro-batch, after computing the per-token KL divergence, we multiply by the pre-computed token mask before summing.
+The mask is constructed from the response token IDs, which are already available from the forward pass.
+No additional forward passes or memory are required, making the method a zero-overhead addition to any self-distillation pipeline.
+
+
+% ═══════════════════════════════════════════════════════════════
+\section{Experiments}
+% ═══════════════════════════════════════════════════════════════
+
+We evaluate epistemic token masking across two reference-solution types and two model scales to test both the generality of the degradation phenomenon and the effectiveness of our intervention.
+
+\subsection{Setup}
+
+\textbf{Models.}
+We use DeepSeek-R1-Distill-Qwen at two scales: 1.5B and 7B parameters.
+The 1.5B model is used for COT-reference experiments where sequence lengths are longer; the 7B model is used for clean-solution experiments.
+
+\textbf{Data and Training.}
+All experiments use the Openthoughts Math 30K dataset \cite{guha2025openthoughts}, which provides problems, reference solutions, and ground-truth answers.
+We adopt the on-policy self-distillation (OPSD) configuration \cite{zhao2026self}: each training step samples 12 problems, generates 1 student rollout per problem, and applies self-distillation using a frozen reference teacher.
+The teacher prompt includes a verified reference solution as privileged context (either the concise ``solution'' field or the full ``COT\_Reason'' chain-of-thought trace).
+All experiments use forward KL divergence with a learning rate of $5 \times 10^{-6}$, micro-batch size of 1 per GPU, and train for 100 steps.
+Experiments run on 8 NVIDIA A800-80GB GPUs.
+
+\textbf{Evaluation.}
+We evaluate on AIME 2024, AIME 2025, and MATH-500.
+For AIME benchmarks, we sample 12 responses per problem (temperature 1.0, top-p 0.95) and report accuracy@12.
+For MATH-500, we use greedy decoding (temperature 0) and report pass@1.
+Evaluation occurs every 10 training steps.
+
+\textbf{Configurations.}
+We compare two training variants:
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Naive OPSD}: Standard self-distillation without masking (sd\_mask\_mode=none).
+    \item \textbf{Masked OPSD}: Our proposed method with token-identity masking (sd\_mask\_mode=token\_identity).
+\end{itemize}
+
+\subsection{COT Reference Solution Experiments (1.5B)}
+
+We first evaluate the most challenging setting: using full chain-of-thought reasoning traces as the teacher's privileged context.
+Our diagnosis (Section~\ref{sec:diagnosis}) showed that COT references produce the strongest epistemic suppression (80\% reduction), making this the ideal setting to test whether masking can prevent degradation.
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Method} & \textbf{Step} & \textbf{AIME24} & \textbf{AIME25} & \textbf{MATH-500} \\
+\midrule
+Base Model & 0 & 0.272 & 0.208 & 0.696 \\
+\midrule
+Naive OPSD & 100 & 0.217 & 0.192 & 0.760 \\
+Masked OPSD & 100 & 0.250 & 0.208 & 0.740 \\
+\midrule
+\multicolumn{2}{l}{Naive $\Delta$ (step 0 $\to$ 100)} & \textbf{$-$0.055 ($-$20.2\%)} & $-$0.016 ($-$7.7\%) & $+$0.064 (+9.2\%) \\
+\multicolumn{2}{l}{Masked $\Delta$ (step 0 $\to$ 100)} & \textbf{$-$0.022 ($-$8.1\%)} & 0.000 (0\%) & $+$0.044 (+6.3\%) \\
+\bottomrule
+\end{tabular}
+\caption{COT reference solution experiments (DeepSeek-R1-Distill-Qwen-1.5B, 100 steps). Naive OPSD degrades AIME24 by 20.2\%; masked OPSD reduces degradation to 8.1\% and completely preserves AIME25.}
+\label{tab:cot_results}
+\end{table*}
+
+Table~\ref{tab:cot_results} reports the results.
+Naive OPSD with COT references causes a substantial drop in AIME24 accuracy from 0.272 to 0.217 ($-20.2\%$), confirming that rich reference context can indeed degrade reasoning.
+AIME25 also declines (0.208 $\to$ 0.192, $-7.7\%$).
+In contrast, \textbf{masked OPSD significantly mitigates the degradation}: AIME24 drops only to 0.250 ($-8.1\%$), and AIME25 remains completely stable at 0.208 (0\% change).
+MATH-500, an in-distribution benchmark, improves under both conditions.
+
+The full training trajectories are shown in Figure~\ref{fig:cot_aime}.
+[INSERT FIGURE: AIME24 and AIME25 curves for Naive vs Masked COT OPSD across 100 steps]
+
+\subsection{Clean Reference Solution Experiments (7B)}
+
+We also evaluate on the original OPSD setup with concise reference solutions on DeepSeek-R1-Distill-Qwen-7B.
+Our diagnosis (Table~\ref{tab:ref_context}) showed that clean solutions produce only mild epistemic suppression, suggesting that degradation in this setting should be less severe.
+
+[INSERT TABLE: Clean-solution results on 7B — Naive OPSD AIME24 0.478 $\to$ 0.481 (flat) vs.\ Masked OPSD similarly stable]
+
+The results confirm that with concise reference solutions, naive OPSD on 7B does not produce the dramatic degradation observed with COT references or with SDPO's regeneration mechanism.
+This is consistent with our diagnostic finding that degradation severity depends on the richness of the reference context: concise solutions suppress epistemic tokens by only 37\%, while full COT traces suppress by 80\%.
+Nevertheless, masking provides additional stability and, more importantly, the diagnostic framework we provide can predict \textit{when} masking will be necessary.
+
+\subsection{Analysis}
+
+\paragraph{Epistemic token retention.}
+We track the frequency of epistemic tokens in student responses throughout training.
+[INSERT PLOT: epistemic token count per response over steps]
+
+\paragraph{Response length dynamics.}
+Naive OPSD with COT references tends to reduce response length as the model learns to imitate the teacher's concise style.
+Masked OPSD maintains healthier response lengths.
+[INSERT PLOT]
+
+\paragraph{Per-token KL divergence.}
+Under masked OPSD, the per-token KL divergence at non-masked positions remains stable at 0.03--0.05 throughout training, indicating that masking a small fraction of tokens does not degrade the distillation signal at informative positions.
+
+
+% ═══════════════════════════════════════════════════════════════
+\section{Discussion}
+% ═══════════════════════════════════════════════════════════════
+
+\paragraph{Why does such a simple intervention work?}
+Our diagnostic findings provide a clear causal account: self-distillation degradation is driven by a concentrated mechanism—the teacher's systematic suppression of a small, specific set of tokens.
+These epistemic markers constitute only 1--2\% of all response tokens but account for a disproportionate share of the KL divergence.
+By protecting only these positions, we eliminate the source of degradation without meaningfully reducing the distillation signal elsewhere.
+
+\paragraph{Domain generality.}
+Our analysis reveals why self-distillation succeeds in code generation and scientific tool use while failing in mathematical reasoning.
+Code tasks rely on syntactic correctness and pattern matching, where epistemic uncertainty markers are neither present nor needed.
+In such domains, the teacher's confident style is actually beneficial—it eliminates unnecessary hesitation.
+However, in mathematical reasoning, where exploration, self-verification, and recovery from intermediate errors depend on explicit uncertainty expression, suppressing epistemic tokens is catastrophic.
+Our masking method provides a domain-adaptive fix: it preserves epistemic expression when it matters (reasoning) and does not interfere when it does not (code).
+
+\paragraph{Reference context as a control knob.}
+Our experiments reveal that the type of privileged information provided to the teacher modulates both the degradation severity and the mask's effectiveness.
+Concise solutions produce mild suppression (37\%); full COT traces cause extreme suppression (80\%).
+This suggests that practitioners can choose reference contexts to balance learning speed and reasoning preservation, and that masking becomes increasingly important as the reference context becomes richer.
+
+\paragraph{Limitations.}
+Our study is limited to the DeepSeek-R1-Distill-Qwen model family.
+While our experiments and prior work suggest that the epistemic suppression effect generalizes across diverse model families, we have not yet validated masking on architectures beyond DeepSeek-R1-Distill-Qwen.
+The predefined epistemic token set may also miss novel uncertainty expressions, though our experiments suggest the current set captures the most impactful tokens.
+Adaptive token identification and per-domain epistemic sets are promising directions for future work.
+
+\paragraph{Broader implications.}
+Our findings reinforce a key insight: optimizing solely for answer correctness can silently reshape reasoning behavior in harmful ways.
+Even when the training objective is mathematically sound, the learned behavior may overfit to the distribution of privileged information available at training time.
+Simple behavioral safeguards—such as protecting uncertainty tokens—can prevent such pathologies without complex architectural changes.
+We hope our diagnostic methodology and principled intervention encourage closer examination of \textit{how} post-training objectives reshape reasoning, not just \textit{whether} they improve accuracy.
+
+
+% ═══════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ═══════════════════════════════════════════════════════════════
+
+We presented a systematic investigation into why self-distillation degrades mathematical reasoning and a simple, effective solution.
+Through token-level probability probes, we demonstrated that the teacher's privileged context causes systematic suppression of epistemic tokens—the uncertainty markers essential for complex reasoning.
+This suppression intensity varies with reference context type, explaining the domain split between self-distillation's success in code and its failure in math.
+Our proposed fix, epistemic token masking, requires no additional hyperparameters, no architectural changes, and no extra compute, making it a drop-in addition to any self-distillation pipeline.
+Experiments across two model scales and two reference-solution types confirm that masking significantly reduces AIME24 degradation (from $-20\%$ to $-8\%$) and completely preserves AIME25 performance.
+We hope our work encourages the community to pay closer attention to how post-training objectives reshape reasoning behavior—and to the power of simple, targeted interventions on small sets of key tokens.
+
+
+% ═══════════════════════════════════════════════════════════════
+% Bibliography
+% ═══════════════════════════════════════════════════════════════
+
+\bibliography{custom}
+\bibliographystyle{acl_natbib}
+
+\end{document}

@@ -699,6 +699,11 @@ rlsd:
   # OPSD-Only：true = 跳过 GRPO；每题强制 1 次 rollout
   opsd_only: false
 
+  # ── Reference Solution 来源列 ────────────────────────────────────
+  # "solution"：clean 教科书解答（无 epistemic token，当前默认）
+  # "COT_Reason"：完整思考链（含 epistemic token，用于退化实验）
+  reference_column: solution
+
   # ── Uncertainty-Aware SD Mask ────────────────────────────────────
   # "none" | "token_identity" | "entropy_percentile"
   sd_mask_mode: none

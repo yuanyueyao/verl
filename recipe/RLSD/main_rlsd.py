@@ -137,7 +137,12 @@ class TaskRunner:
         # ── RLSD 问题数据集（从 train parquet 加载全量题池）───────────
         rlsd_cfg = config.rlsd
         ds_seed = OmegaConf.select(rlsd_cfg, "dataset_seed", default=None)
-        rlsd_dataset = RLSDDataset.from_parquet(train_pool_src, seed=int(ds_seed) if ds_seed else 42)
+        reference_column = OmegaConf.select(rlsd_cfg, "reference_column", default="solution")
+        rlsd_dataset = RLSDDataset.from_parquet(
+            train_pool_src,
+            seed=int(ds_seed) if ds_seed else 42,
+            reference_column=reference_column,
+        )
         print(f"[main] RLSDDataset 共 {len(rlsd_dataset)} 道题目")
 
         # ── 训练器 ────────────────────────────────────────────────────

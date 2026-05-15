@@ -1,0 +1,80 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Agarwal et~al.(2024)Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist,
+  and Bachem}]{agarwal2024onpolicy}
+Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, Piotr Stanczyk, Sabela~Ramos
+  Garea, Matthieu Geist, and Olivier Bachem. 2024.
+\newblock On-policy distillation of language models: Learning from
+  self-generated mistakes.
+\newblock In \emph{The Twelfth International Conference on Learning
+  Representations}.
+
+\bibitem[{Deng et~al.(2026)Deng, Liang, Li, Li, and Xie}]{deng2026conpress}
+Jie Deng, Shining Liang, Jun Li, Hongzhi Li, and Yutao Xie. 2026.
+\newblock Conpress: Learning efficient reasoning from multi-question contextual
+  pressure.
+\newblock \emph{arXiv preprint arXiv:2602.01472}.
+
+\bibitem[{Guha et~al.(2025)Guha, Marten, Keh, Raoof, Smyrnis, Bansal,
+  Nezhurina, Mercat, Vu, Sprague et~al.}]{guha2025openthoughts}
+Ethan Guha, Ryan Marten, Sedrick Keh, Nikhil Raoof, Georgios Smyrnis, Hritik
+  Bansal, Marianna Nezhurina, Jean Mercat, Tu~Vu, Zayne Sprague, and 1 others.
+  2025.
+\newblock Openthoughts: Data recipes for reasoning models.
+\newblock \emph{arXiv preprint arXiv:2506.04178}.
+
+\bibitem[{H{\"u}botter et~al.(2026)H{\"u}botter, L{\"u}beck, Behric, Baumann,
+  Bagatella, M{\"a}rta, Hakimi, Shenfeld, B{\"u}ening, Guestrin
+  et~al.}]{hubotter2026reinforcement}
+Jonas H{\"u}botter, Frederike L{\"u}beck, Lejs Behric, Anton Baumann, Marco
+  Bagatella, Daniel M{\"a}rta, Ido Hakimi, Idan Shenfeld, Thomas~Kleine
+  B{\"u}ening, Carlos Guestrin, and 1 others. 2026.
+\newblock Reinforcement learning via self-distillation.
+\newblock \emph{arXiv preprint arXiv:2601.20802}.
+
+\bibitem[{Luo et~al.(2026)Luo, Ren, Chen, Liu, Fang, Tan, and
+  Huang}]{luo2026compress}
+Qin-Wen Luo, Sheng Ren, Xiang Chen, Rui Liu, Jun Fang, Naiqiang Tan, and
+  Sheng-Jun Huang. 2026.
+\newblock Compress the easy, explore the hard: Difficulty-aware entropy
+  regularization for efficient llm reasoning.
+\newblock \emph{arXiv preprint arXiv:2602.22642}.
+
+\bibitem[{Sang et~al.(2026)Sang, Xu, Zhou, He, Wang, and
+  Sun}]{sang2026onpolicy}
+Hejian Sang, Yuanda Xu, Zhengze Zhou, Ran He, Zhipeng Wang, and Jiachen Sun.
+  2026.
+\newblock On-policy self-distillation for reasoning compression.
+\newblock \emph{arXiv preprint arXiv:2603.05433}.
+
+\bibitem[{Shrivastava et~al.(2025)Shrivastava, Awadallah, Balachandran, Garg,
+  Behl, and Papailiopoulos}]{shrivastava2025sample}
+Vaishnavi Shrivastava, Ahmed~Hassan Awadallah, Vidhisha Balachandran, Shivam
+  Garg, Harkirat Behl, and Dimitris Papailiopoulos. 2025.
+\newblock Sample more to think less: Group filtered policy optimization for
+  concise reasoning.
+\newblock \emph{First Workshop on Foundations of Reasoning in Language Models}.
+
+\bibitem[{Snell et~al.(2022)Snell, Klein, and Zhong}]{snell2022learning}
+Charlie Snell, Dan Klein, and Ruiqi Zhong. 2022.
+\newblock Learning by distilling context.
+\newblock \emph{arXiv preprint arXiv:2209.15189}.
+
+\bibitem[{Yang et~al.(2026)Yang, Guo, Huang, Wang, Shi, Wang, Liang, and
+  Tang}]{yang2026accordion}
+Zhicheng Yang, Zhijiang Guo, Yinya Huang, Yongxin Wang, Wenlei Shi, Yiwei Wang,
+  Xiaodan Liang, and Jing Tang. 2026.
+\newblock Accordion-thinking: Self-regulated step summaries for efficient and
+  readable llm reasoning.
+\newblock \emph{arXiv preprint arXiv:2602.03249}.
+
+\bibitem[{Zhao et~al.(2026)Zhao, Xie, Liu, Huang, Pang, Chen, and
+  Grover}]{zhao2026self}
+Siyan Zhao, Zhihui Xie, Mengchen Liu, Jing Huang, Guan Pang, Feiyu Chen, and
+  Aditya Grover. 2026.
+\newblock Self-distilled reasoner: On-policy self-distillation for large
+  language models.
+\newblock \emph{arXiv preprint arXiv:2601.18734}.
+
+\end{thebibliography}

@@ -42,22 +42,37 @@ class RLSDDataset:
         self._rng = random.Random(seed)
 
     @classmethod
-    def from_parquet(cls, parquet_path: str, seed: int = 42) -> "RLSDDataset":
-        """从 parquet 构建题目列表（列：problem、Answer、solution）。"""
+    def from_parquet(
+        cls,
+        parquet_path: str,
+        seed: int = 42,
+        reference_column: str = "solution",
+    ) -> "RLSDDataset":
+        """从 parquet 构建题目列表。
+        
+        Args:
+            parquet_path: parquet 文件路径
+            seed: 随机种子
+            reference_column: reference_solution 来源列名。
+                默认 "solution"（clean 教科书解）；
+                可选 "COT_Reason"（含 epistemic token 的思考链）。
+        """
         df = pd.read_parquet(parquet_path)
         for col in ("problem", "Answer"):
             if col not in df.columns:
                 raise ValueError(f"parquet 缺少列 {col!r}，实际列：{list(df.columns)}")
+        if reference_column not in df.columns:
+            print(f"[RLSDDataset] WARNING: reference_column={reference_column!r} 不存在于 parquet 列 {list(df.columns)}，退化为空字符串")
         problems = [
             RLSDProblem(
                 index=int(i),
                 question=str(row["problem"]),
                 ground_truth=str(row["Answer"]),
-                reference_solution=str(row.get("solution", "")),
+                reference_solution=str(row.get(reference_column, "")),
             )
             for i, row in df.iterrows()
         ]
-        print(f"[RLSDDataset] 从 {parquet_path} 加载 {len(problems)} 道题目")
+        print(f"[RLSDDataset] 从 {parquet_path} 加载 {len(problems)} 道题目 (reference_column={reference_column})")
         return cls(problems=problems, seed=seed)
 
     def __len__(self) -> int:
