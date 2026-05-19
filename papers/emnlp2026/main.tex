@@ -565,10 +565,10 @@ These epistemic tokens constitute roughly 12\% of response tokens in our math-re
 By protecting only these positions, we eliminate the source of degradation without meaningfully reducing the token-level self-distillation signal elsewhere valuable.
 
 \paragraph{Domain generality.}
-Our findings explain why self-distillation can behave differently in tool-use, code generation, and mathematical reasoning.
-Tool and code tasks often provide executable feedback, syntactic targets, or API-grounded response behavior, so a concise teacher trace can be helpful rather than harmful.
-In mathematical reasoning, however, exploration, self-verification, and recovery from intermediate errors depend on explicit uncertainty expression. Suppressing epistemic tokens can therefore be highly damaging.
-Because epistemic tokens are rare in code-like domains, we expect the mask to have little effect there; verifying this empirically is an important direction for future work.
+Our findings help explain why self-distillation behaves differently across domains.
+Tasks such as tool-use, code generation, and knowledge QA rarely depend on reflective reasoning; they often provide executable feedback, syntactic targets, or API-grounded responses, so a concise teacher trace can be helpful rather than harmful.
+In mathematical reasoning, however, exploration, self-verification, and recovery from intermediate errors depend on explicit uncertainty expression, and suppressing epistemic tokens is therefore highly damaging.
+Because epistemic tokens are rare in code-like domains, we expect the mask to have little effect there.
 
 \paragraph{Reference context as a control knob.}
 Our diagnostic probe (Section~\ref{sec:diagnosis}) suggests that the type of privileged information provided to the teacher modulates epistemic suppression severity.
@@ -577,7 +577,7 @@ This suggests that practitioners can choose reference contexts to balance learni
 
 \paragraph{Limitations.}
 Our study is limited to the DeepSeek-R1-Distill-Qwen reasoning model family.
-The predefined epistemic token set may also miss novel uncertainty expressions, though our experiments suggest the current set captures the most impactful tokens.
+The epistemic token set may not fit for all domains and diffrenrt model families that have different uncertainty expressions, though our experiments suggest the current set captures the most impactful tokens.
 Adaptive token identification, per-domain epistemic token sets or entropy-based masking are promising directions for future work.
 
 \paragraph{Broader implications.}
@@ -585,7 +585,7 @@ Our findings point to a broader principle: dense token-level objectives are epis
 They apply the same formal signal to functionally distinct tokens, even when those tokens play different roles in the reasoning process.
 This blind spot is not unique to self-distillation.
 Similarly, the KL penalty that constrains the policy toward a reference model in RLHF~\cite{ziegler2019finetuning,stiennon2020learning,bai2022training,ouyang2022training}, and the cross-entropy loss toward a target distribution in SFT, deserves further consideration.
-Our results suggest that post-training objectives should account for token function.
+Our results suggest that it's worthwhile to consider token function in post-training objectives.
 
 
 % ═══════════════════════════════════════════════════════════════
