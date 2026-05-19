@@ -552,6 +552,46 @@ Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive
 
 **论文价值**: 同一题的直接对比。Naive SD 虽然答案正确，但推理模式从 "thorough verification" 退化为 "confident minimal check"。这种 epistemic token 的消失正是论文诊断的退化机制——如果 naive SD 遇到更复杂的题，缺乏验证习惯会导致不可察觉的错误。
 
+### 三方对比：Naive SD 的域错误（MATH-500 idx 431）
+
+> Base / Naive SD / Masked SD 对同一 MATH-500 问题的输出对比。Naive SD 犯了一个经典错误——错误截断 arccos 值域——这正是缺乏 epistemic verification 的后果。
+
+**题目**: \(f(x) = (\arccos x)^2 + (\arcsin x)^2\)，求值域（答案: \([π²/8, 5π²/4]\)）
+
+**Base (step 0)**: ✅ 正确 · epi=4 · 9,652 chars
+- 用 identity `arccos x + arcsin x = π/2` → 化为 θ 的二次型 → 顶点 θ=π/4 → 最小值 π²/8
+- 正确判断 `θ ∈ [0, π]`（arccos 的标准值域）
+- 检查端点 θ=0, θ=π → 确认最大值在 θ=π (x=-1) 处 5π²/4
+- 额外通过求导 f'(x)=0 验证临界点唯一
+- "Wait, but let me make sure", "Wait, hold on, is that correct?" — 多次自检
+
+**Naive SD (step 100)**: ❌ 错误 · epi=1 · 5,623 chars
+- 同样的 identity → 同样的二次型 → 同样顶点 π/4 → 最小值 π²/8 ✓
+- **关键错误**: 将 `a ∈ [0, π/2]` 而非 `[0, π]`。arccos x 在 x∈[-1,1] 下完整值域是 [0,π]，但 naive 模型错误截断到 [0,π/2]
+- 端点仅检查 a=0 和 a=π/2，两者都得到 π²/4 → 缺失 a=π 处的 5π²/4
+- 答案 `[π²/8, π²/4]` — 最小值对，最大值错
+- 仅 1 个 "Hmm"，无验证步骤
+
+**Masked SD (step 100)**: ✅ 正确 · epi=2 · 6,053 chars
+- 正确判断 `a ∈ [0, π]` — 与 base 模型一致
+- 检查 a=0, π/4, π 三处 → 得到正确范围 [π²/8, 5π²/4]
+- "Wait, hold on. Earlier, I thought the minimum was at a=π/4... Let me verify" — 保留了自检习惯
+- 最终用具体 x=1, x=-1 代入原函数确认
+
+**对比总结**:
+
+| 维度 | Base (step 0) | Naive SD (step 100) | Masked SD (step 100) |
+|------|--------------|---------------------|----------------------|
+| 正确答案 | ✅ \([π²/8, 5π²/4]\) | ❌ \([π²/8, π²/4]\) | ✅ \([π²/8, 5π²/4]\) |
+| Epistemic tokens | 4 | 1 | 2 |
+| 回复长度 | 9,652 | 5,623 | 6,053 |
+| 值域判断 | `θ ∈ [0, π]` ✓ | `θ ∈ [0, π/2]` ✗ | `a ∈ [0, π]` ✓ |
+| 端点检查 | 0, π/4, π (三处) | 0, π/2 (两处) | 0, π/4, π (三处) |
+| 求导验证 | ✅ | ❌ | ❌ |
+| 关键 epistemic 词 | "Wait", "hold on", "let me make sure" | "Hmm" (仅 1 处) | "Wait, hold on", "Let me verify" |
+
+**论文价值**: 三方对比的核心证据。Naive SD 不是因为"算错"而错——它是在一个前置假设（arccos 值域）上犯了知识性错误，且没有 epistemic verification 来捕捉。Base 和 Masked 都正确记住了值域并检查了三个边界点。这直接展示：mask 掉了 epistemic token 位置的 KL loss → 模型保留了自检习惯 → 可以避免这类"自信的域错误"。
+
 ### 编译 SOP
 
 ```bash
