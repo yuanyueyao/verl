@@ -775,4 +775,29 @@ Thus: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
 
+\section{GRPO Baseline}
+
+Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning method that uses outcome-based verifiable rewards without a separate critic model.
+For a given prompt $x$, GRPO samples $n$ responses $\{y^{(1)}, \dots, y^{(n)}\}$ from the current policy.
+Each response receives a scalar reward $r(y^{(i)}, y^*)$ by comparing the extracted answer against the ground truth $y^*$.
+The advantage for response $i$ is computed by normalizing its reward within the group:
+\[
+A^{(i)} = \frac{r^{(i)} - \mu}{\sigma + \varepsilon},
+\quad
+\mu = \frac{1}{n}\sum_{j=1}^n r^{(j)},\;
+\sigma = \sqrt{\frac{1}{n}\sum_{j=1}^n (r^{(j)} - \mu)^2}.
+\]
+The policy is then updated by maximizing the clipped surrogate objective:
+\[
+\mathcal{L}_{\text{GRPO}} = \frac{1}{n}\sum_{i=1}^n
+\min\!\left(
+    \rho^{(i)} A^{(i)},\;
+    \operatorname{clip}(\rho^{(i)}, 1-\varepsilon, 1+\varepsilon)\, A^{(i)}
+\right) - \beta\, \text{KL}(\pi_\theta \parallel \pi_{\text{ref}}),
+\]
+where $\rho^{(i)} = \pi_\theta(y^{(i)} \mid x) / \pi_{\text{old}}(y^{(i)} \mid x)$ and $\beta$ is a KL penalty coefficient.
+GRPO uses no teacher model and no per-token supervision. Its reward signal is sparse---a single scalar per response at the final token.
+We use $n=8$, $\varepsilon=0.2$, $\beta=0.04$, and group-based advantage normalization.
+Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
+
 \end{document}
