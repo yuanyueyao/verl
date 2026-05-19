@@ -637,7 +637,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 ## 十四、SFT Baseline 实验（已准备，待跑）
 
 ### 目的
-补充 SFT baseline 对照 SD 实验。区分"蒸馏有害" vs "reference 数据分布本身有害"——SFT 用 COT trace 做 CE loss，如果也退化说明问题在 reference，不退化则问题确在 KL 蒸馏。
+补充 SFT baseline，证明 masked self-distillation 作为新范式的优越性。
 
 ### 脚本
 
