@@ -796,8 +796,6 @@ The policy is then updated by maximizing the clipped surrogate objective:
 \right) - \beta\, \text{KL}(\pi_\theta \parallel \pi_{\text{ref}}),
 \]
 where $\rho^{(i)} = \pi_\theta(y^{(i)} \mid x) / \pi_{\text{old}}(y^{(i)} \mid x)$ and $\beta$ is a KL penalty coefficient.
-GRPO uses no teacher model and no per-token supervision. Its reward signal is sparse---a single scalar per response at the final token.
-We use $n=8$, $\varepsilon=0.2$, $\beta=0.04$, and group-based advantage normalization.
-Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
+GRPO uses no teacher model and no per-token supervision. Its reward signal is sparse---a single scalar per response at the final token. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \end{document}
