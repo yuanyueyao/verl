@@ -784,6 +784,13 @@ Given a query $q$, the old policy $\pi_{\theta}^{\text{old}}$ generates $G$ cand
 \hat{A}_{i,t} = \frac{R(q, o_i) - \operatorname{mean}(\{R(q, o_j)\}_{j=1}^G)}
 {\operatorname{std}(\{R(q, o_j)\}_{j=1}^G) + \varepsilon}.
 \]
-The policy is updated by maximizing a clipped surrogate objective with this advantage, plus an optional KL penalty toward a reference model. Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response at the final token. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
+Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}^{\text{old}}(o_{i,t} \mid q, o_{i,<t})$. The policy is updated with a clipped surrogate objective, similar to PPO, combined with a KL-divergence penalty to constrain policy drift:
+\[
+\mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^G \frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\!\Bigl(
+    r_\theta(o_{i,t})\,\hat{A}_{i,t},\;
+    \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
+\Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
+\]
+Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response at the final token. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \end{document}
