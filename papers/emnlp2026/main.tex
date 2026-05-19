@@ -107,7 +107,7 @@
   \par\medskip
 }
 
-\newtcolorbox{casenote}{
+\newtcolorbox{casenote}[1][]{
   colback=PromptBg,
   colframe=PromptBorder,
   fontupper=\small,
@@ -118,7 +118,11 @@
   top=5pt,
   bottom=5pt,
   before skip=6pt,
-  after skip=8pt
+  after skip=8pt,
+  title=#1,
+  fonttitle=\small\bfseries\itshape,
+  coltitle=black!60,
+  attach title to upper={\par}
 }
 
 \title{Epistemic Tokens as Functional Anchors: Why Self-Distillation Fails in Mathematical Reasoning and How to Fix It}
@@ -718,7 +722,7 @@ Endpoints: \(a=0\) gives \(\pi^2/4\); \textcolor{red}{\(a=\pi/2\)} also gives \(
 
 Therefore, the range of \(f(x)\) is \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{\pi^2}{4} \right]}\).
 \end{caseblock}
-\begin{casenote}
+\begin{casenote}[Analysis]
 The naive-distilled model proceeds directly from setup to conclusion with no reflective pauses. The domain of \(\arccos x\) is incorrectly truncated to \([0, \pi/2]\) (the correct range is \([0, \pi]\)). Only two endpoints are evaluated---both yielding \(\pi^2/4\)---and the model immediately concludes the maximum is \(\pi^2/4\), never examining \(x = -1\) where the true maximum \(5\pi^2/4\) occurs. The sole ``Hmm'' at the start is the only epistemic token in the entire response: no ``Wait,'' no ``let me check,'' no self-questioning of the domain assumption. In contrast to the base model---which pauses to verify the identity, catches an arithmetic slip, differentiates to confirm the critical point, and invokes the Extreme Value Theorem---the naive-distilled model simply executes the derivation and stops.
 \end{casenote}
 
@@ -749,7 +753,7 @@ I considered the identity, transformed the function, checked the vertex and all 
 
 Thus: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \end{caseblock}
-\begin{casenote}
+\begin{casenote}[Analysis]
 The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
 
