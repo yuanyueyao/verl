@@ -502,6 +502,25 @@ Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive
 - Ablation (random-mask) — 跳过
 - Table 3 (Top-k) 可移 Appendix
 
+### 代表性 Case Study 素材：Base 模型的自发 Reflective Reasoning
+
+> 来自 DS-R1-Distill-Qwen-1.5B step 0 eval（MATH-500 problem 34），展示了 base 模型未经任何 SD 训练时的自然 self-correction 行为。适合放入 Appendix C 作为 extra example。
+
+**题目**: Find the constant term in the expansion of \((10x^3 - \frac{1}{2x^2})^{5}\)（答案: -125）
+
+**推理过程摘要**:
+1. 正确设定 binomial theorem → 找到 k=3 时指数为零
+2. **首次计算错误**: 10 × \(-\frac{1}{8}\) = \(-\frac{5}{4}\)（遗漏了 \((10x^3)^2=100x^6\) 的 100）
+3. **自我发现**: "Wait, let me double-check that... 10 × 100 is 1000, and 1000 × (-1/8) is -125. Wait, hold on, that contradicts my earlier calculation. Hmm, where did I go wrong?"
+4. **纠正**: 重新计算常数部分 10 × 100 × (-1/8) = -125
+5. **多次验证**: "Wait, but let me check if I did the exponents correctly" → 复查指数
+6. **交叉验证**: 手动展开全部 6 项 (k=0..5) 确认只有 k=3 产生常数项 -125
+7. **最终确认**: \(\boxed{-125}\) ✓
+
+**使用的 Epistemic Tokens**: "Hmm", "Wait" (×4), "Wait, hold on", "Hmm, where did I go wrong?", "let me double-check", "let me think again", "But just to be thorough"
+
+**论文价值**: 此例展示了 base 模型自然具备的 reflective reasoning 循环——犯错→察觉→纠正→交叉验证。对比 naive SD 训练后此能力被抑制、masked SD 训练后此能力保留，是支撑论文核心 claim 的 qualitative evidence。
+
 ### 编译 SOP
 
 ```bash
