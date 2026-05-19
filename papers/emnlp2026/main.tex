@@ -629,23 +629,16 @@ Training steps & 100 & 100 & 100 \\
 Global batch size & 32 & 32 & 32 \\
 Mini batch per GPU & 8 & 8 & 8 \\
 Gradient accumulation & 1 & 1 & 1 \\
+Rollouts per problem & 1 & 1 & 8 \\
 \midrule
 \multicolumn{4}{l}{\textbf{Self-Distillation Specific}} \\
-Rollouts per problem & 1 & — & — \\
 KL clip threshold $\tau$ & 5.0 & — & — \\
 \midrule
 \multicolumn{4}{l}{\textbf{GRPO Specific}} \\
 Clip $\varepsilon$ & — & — & 0.2 \\
 KL penalty coefficient & — & — & 0.04 \\
-Group size & — & — & 8 \\
 Advantage normalization & — & — & group \\
 Reward normalization & — & — & enabled \\
-\midrule
-\multicolumn{4}{l}{\textbf{Data}} \\
-Training set & \multicolumn{3}{c}{OpenThoughts math subset} \\
-Training samples & \multicolumn{3}{c}{30K} \\
-Filtering & \multicolumn{3}{c}{$\leq$ 16,384 characters} \\
-Trainable parameters & \multicolumn{3}{c}{full model} \\
 \midrule
 \multicolumn{4}{l}{\textbf{Generation (training)}} \\
 Temperature & 1.0 & — & 1.0 \\
