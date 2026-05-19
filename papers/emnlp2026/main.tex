@@ -539,7 +539,7 @@ SFT shows modest but consistent improvement---particularly on MATH-500, which is
 \paragraph{Epistemic token dynamics.}
 We track the frequency of epistemic tokens in student responses throughout training.
 Figure~\ref{fig:dynamics} (left) shows that under naive self-distillation, epistemic tokens collapse early and only partially recover later.
-This supports a two-stage dynamic: an early concentrated token-level self-distillation signal at epistemic-token positions suppresses reflection and self-checking, while the broader signal over non-epistemic positions later restores some task-relevant behavior.
+This supports a two-stage dynamic: an early concentrated token-level self-distillation signal at epistemic-token positions suppresses self-reflection, while the broader signal over non-epistemic positions later restores some task-relevant behavior.
 Under masked self-distillation, epistemic-token usage is largely preserved, keeping the student model more reflective.
 
 \paragraph{Response length dynamics.}
@@ -566,9 +566,9 @@ By protecting only these positions, we eliminate the source of degradation witho
 
 \paragraph{Domain generality.}
 Our findings help explain why self-distillation behaves differently across domains.
-Tasks such as tool-use, code generation, and knowledge QA rarely depend on reflective reasoning; they often provide executable feedback, syntactic targets, or API-grounded responses, so a concise teacher trace can be helpful rather than harmful.
+Tasks such as tool-use, science QA, and worldknowledge QA could be seen as knowledge-intensive, so a concise teacher trace can be helpful rather than harmful.
 In mathematical reasoning, however, exploration, self-verification, and recovery from intermediate errors depend on explicit uncertainty expression, and suppressing epistemic tokens is therefore highly damaging.
-Because epistemic tokens are rare in code-like domains, we expect the mask to have little effect there.
+Because epistemic tokens are rare in knowledge-intensive domains, we expect the mask to have little effect there.
 
 \paragraph{Reference context as a control knob.}
 Our diagnostic probe (Section~\ref{sec:diagnosis}) suggests that the type of privileged information provided to the teacher modulates epistemic suppression severity.
@@ -584,7 +584,7 @@ Adaptive token identification, per-domain epistemic token sets or entropy-based 
 Our findings point to a broader principle: dense token-level objectives are epistemically blind.
 They apply the same formal signal to functionally distinct tokens, even when those tokens play different roles in the reasoning process.
 This blind spot is not unique to self-distillation.
-Similarly, the KL penalty that constrains the policy toward a reference model in RLHF~\cite{ziegler2019finetuning,stiennon2020learning,bai2022training,ouyang2022training}, and the cross-entropy loss toward a target distribution in SFT, deserves further consideration.
+Similarly, the KL penalty that constrains the policy toward a reference model in RLHF~\cite{ziegler2019finetuning,stiennon2020learning,bai2022training}, and the cross-entropy loss toward a target distribution in SFT, deserves further consideration.
 Our results suggest that it's worthwhile to consider token function in post-training objectives.
 
 
