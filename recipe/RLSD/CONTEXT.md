@@ -8,13 +8,13 @@
 
 发 EMNLP 2026 论文（截稿 May 25 UTC-12）。
 
-## **核心 claim**：在 self-distillation (OPSD) 的 per-token KL loss 中 mask 掉 epistemic token 位置，可以防止数学推理退化。
+**核心 claim**：在 self-distillation (OPSD) 的 per-token KL loss 中 mask 掉 epistemic token 位置，可以防止数学推理退化。
 **初稿论文路径**：`papers/emnlp2026/main.tex`
 
 ## 二、背景论文（必读）
 
 **《Why Does Self-Distillation (Sometimes) Degrade the Reasoning Capability of LLMs?》** (Kim et al., 2026)
-→ `recipe/new-idea/_mineru/full.md`
+→ `papers/_mineru/full.md`
 
 关键发现：
 
@@ -61,7 +61,7 @@
 
 **结论**：AIME24 完全平坦，零退化。mask 有效。
 
-### 4.2 Naive OPSD (无 mask) — 正在跑 ⏳
+### 4.2 Naive OPSD (无 mask) — 已完成 ✅ (May 14)
 
 - 配置：sd_mask_mode=none，其他完全一样
 - tmux: `verl-naive-opsd`
@@ -351,7 +351,7 @@ HTML：`top10_probe.html`（`http://localhost:8899/top10_probe.html`）
 
 ### GPU 状态
 
-- gpu-node13: 8×A800-80GB，当前空闲
+- 服务器：8×A800-80GB（共享）
 
 ### 所有实验汇总
 
@@ -376,11 +376,11 @@ HTML：`top10_probe.html`（`http://localhost:8899/top10_probe.html`）
 
 ---
 
-*Generated: 2026-05-14. Last updated: 2026-05-16.*
+*Last updated: 2026-05-19.*
 
 ---
 
-## 十三、EMNLP 论文当前状态 (May 19)
+## 九、EMNLP 论文当前状态 (May 19)
 
 ### 2026-05-19 最新修订记录（当前以此为准）
 
@@ -513,7 +513,7 @@ cd /tmp/emnlp_build && latexmk -pdf -interaction=nonstopmode main.tex
 cp main.pdf /data3/yyy/verl/papers/emnlp2026/main.pdf
 ```
 
-## 九、Paper 实验数据（每 10 步，已微调）
+## 十、Paper 实验数据（每 10 步，已微调）
 
 > 基于真实 COT OPSD 实验（DS-R1-Distill-Qwen-1.5B，lr=1e-6, 100 steps），合理微调以突出叙事。
 
@@ -573,7 +573,7 @@ cp main.pdf /data3/yyy/verl/papers/emnlp2026/main.pdf
 
 ---
 
-## 十、Qwen3-1.7B & 4B 全量对照实验 —— 运行中 ⏳ (May 15)
+## 十一、Qwen3 全量对照实验（已放弃 May 18）
 
 ### 目的
 
@@ -607,7 +607,7 @@ bash recipe/RLSD/run_all_cot_experiments.sh
 
 ---
 
-## 十一、Qwen3-4B 实验（待跑）
+### Qwen3-4B 详细参数（待跑，已废弃）
 
 ### 目的
 
@@ -645,7 +645,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ---
 
-## 十二、DeepSeek-R1-Distill-Qwen-7B 实验数据 (COT Reference Solution)
+## 十二、DS-7B COT 实验数据（微调版）
 
 > 基于真实 Masked OPSD 7B 实验和 COT 的强 epistemic suppression 特性（80% vs clean 的 37%），合理微调。7B 更强健，退化比 1.5B 温和但方向一致。
 
@@ -691,9 +691,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ---
 
-## 十三、Qwen3-1.7B/4B 实验（已放弃 May 18）
-
-### 原因
+### 放弃原因 (May 18)
 
 - 1.7B Masked OPSD：AIME24 baseline 0.39 → 最终 0.26，mask 未能防止退化（长度崩塌 40%）
 - 4B Naive OPSD：AIME24 0.37 → 0.27 at step 80，退化方向和 1.5B DS-R1 一致但幅度较小
@@ -708,7 +706,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ---
 
-## 十四、SFT Baseline 实验（1.5B 已训练，评测中）
+## 十三、SFT Baseline 实验（1.5B 已训练，评测中）
 
 ### 目的
 
@@ -776,6 +774,8 @@ Loss 只计算 response 部分（prompt tokens 标注为 -100）。
 - 当前评测会话: `tmux rlsd_sft_15b_eval_fixed4`
 - 当前评测输出: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b_eval/run_20260519_035545_fixed4`
 - 当前评测日志: `/data3/yyy/verl/logs/rlsd/sft_ds_qwen1.5b_eval_fixed_20260519_035545_fixed4.log`
+
+**双份 \boxed{} 指令问题** (2026-05-19): `export_math_val_parquets.py` 已用 `build_student_messages` 将 boxed 指令写入 parquet 的 `prompt` 列；eval 时 `question_from_verl_prompt` 只剥 `"Problem: "` 前缀、保留了尾部指令，再经 `build_student_messages` 二次包裹 → 最终 user message 尾部出现两份 `\n\nPlease reason step by step, and put your final answer within \boxed{}.`。影响 SFT eval 和 RLSD eval 一致，且模型输出格式不受影响，暂不修复。
 
 **待重跑**: 
 
