@@ -664,99 +664,83 @@ Teacher and student share the same parameters but differ in conditioning: the te
 
 \clearpage
 \onecolumn
-\section{Case Study: Suppression of Reflective Reasoning}
+\section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
 
-Below we contrast responses from the base model, the naive self-distilled model, and the masked self-distilled model on a representative AIME problem.
+Below we contrast responses from the base model, the naive self-distilled model, and the masked self-distilled model on a representative MATH problem.
 Epistemic tokens (e.g., ``Hmm,'' ``Wait,'' ``check'') are \textcolor{orange}{highlighted in orange}; errors in \textcolor{red}{red}.
 
-\begin{problemblock}{Problem (AIME 2024, \#8)}
-\textit{Let $a_n$ be the number of sequences of length $n$ over the alphabet $\{A,B,C\}$ that contain no two consecutive $A$'s. Find $a_8$.}
+\begin{problemblock}{Problem (MATH-500)}
+\textit{Let \(f(x) = (\arccos x)^2 + (\arcsin x)^2\). Find the range of \(f(x)\). All functions are in radians.}
 \end{problemblock}
 
-\begin{caseblock}{Base model: setup and recurrence}{blue}
-Let's solve this step by step. We need the number of length-$n$ ternary sequences avoiding ``AA''.
+\begin{caseblock}{Base model: setup and domain check}{blue}
+Let's solve this. I remember that \(\arccos x + \arcsin x = \pi/2\) for any \(x \in [-1,1]\).
 
-Define $f(n)$ = number of valid sequences of length $n$.
-For $n=1$: all 3 strings work, so $f(1)=3$.
+Let \(\theta = \arccos x\). Then \(\arcsin x = \pi/2 - \theta\), so
+\(f(x) = \theta^2 + (\pi/2 - \theta)^2 = 2\theta^2 - \pi\theta + (\pi/2)^2\).
 
-Now for a sequence of length $n$, consider the first letter:
-If it is B or C (2 choices), the remaining $n-1$ positions can be any valid sequence: $2 \cdot f(n-1)$.
-If it is A, the second letter must be B or C (2 choices), then remaining $n-2$ positions any valid: $1 \cdot 2 \cdot f(n-2)$.
+Since \(\theta = \arccos x\) and \(x \in [-1,1]\), \(\theta\) ranges over \([0, \pi]\).
+This is a quadratic opening upwards; the vertex at \(\theta = \pi/4\) gives the minimum.
 
-\textcolor{orange}{Hmm,} let me double-check. When first letter is A, we need the second not to be A. So second = B or C (2 ways), then remaining $n-2$ are free: $2 f(n-2)$. Good.
-
-So recurrence: $f(n) = 2f(n-1) + 2f(n-2)$, with $f(1)=3$, $f(2)$?
-
-For $n=2$: total $3^2=9$, minus AA = 1, so $f(2)=8$. Let's verify: $2f(1)+2f(0)=2\cdot3+2\cdot1=8$. \textcolor{orange}{Wait,} $f(0)=1$ (empty sequence). OK.
+\textcolor{orange}{Wait,} let me verify the identity: at \(x=0\), \(\arccos 0 = \pi/2\), \(\arcsin 0 = 0\), sum \(\pi/2\). At \(x=1\), \(\arccos 1 = 0\), \(\arcsin 1 = \pi/2\). \textcolor{orange}{OK, correct.}
 \end{caseblock}
 
 \begin{caseblock}{Base model: computation and verification}{blue}
-Now compute:
-$f(3) = 2\cdot8 + 2\cdot3 = 16+6=22$
-$f(4) = 2\cdot22 + 2\cdot8 = 44+16=60$
-$f(5) = 2\cdot60 + 2\cdot22 = 120+44=164$
-$f(6) = 2\cdot164 + 2\cdot60 = 328+120=\textcolor{red}{438}$.
-\textcolor{orange}{Wait,} $328+120$ is not $438$; it is $448$. So $f(6)=448$.
-$f(7) = 2\cdot448 + 2\cdot164 = 896+328=1224$
-$f(8) = 2\cdot1224 + 2\cdot448 = 2448+896=3344$
+Minimum at \(\theta = \pi/4\): \(f = 2(\pi^2/16) - \pi^2/4 + \pi^2/4 = \pi^2/8\).
 
-\textcolor{orange}{Let me check} $f(3)$ manually: total $27$ strings. Invalid ones contain AA at positions (1,2) or (2,3). Count invalid by casework... \textcolor{orange}{Actually,} let me just verify the recurrence is correct before computing further.
+Endpoints: \(\theta = 0\) (i.e., \(x=1\)): \(f = 0 + (\pi/2)^2 = \pi^2/4\).
+\(\theta = \pi\) (i.e., \(x=-1\)): \(f = 2\pi^2 - \pi^2 + \pi^2/4 = 5\pi^2/4\).
 
-\textcolor{orange}{Hmm, maybe} I should verify with a small case. $n=3$, recurrence gives 22. Total $3^3=27$. Invalid: strings containing AA. Position (1,2): AA$\times$ (3 strings). Position (2,3): $\times$AA (3 strings). Subtract overlap AAA (1 string). So $27-3-3+1=22$. \textcolor{orange}{OK, correct.}
+\textcolor{orange}{Wait,} \(2\pi^2 - \pi^2 = \pi^2\), then \(+\pi^2/4 = 5\pi^2/4\). \textcolor{orange}{Let me double-check} by computing directly: \(f(-1) = (\arccos(-1))^2 + (\arcsin(-1))^2 = \pi^2 + (-\pi/2)^2 = \pi^2 + \pi^2/4 = 5\pi^2/4\). Good.
 
-So $f(8)=3344$. Final answer: $\boxed{3344}$.
+\textcolor{orange}{Let me also} find critical points via derivative:
+\(f'(x) = \frac{2}{\sqrt{1-x^2}}[\pi/2 - 2\arccos x]\).
+Setting to zero gives \(\arccos x = \pi/4\), i.e., \(x = \sqrt{2}/2\)---the same vertex.
+
+\textcolor{orange}{Hmm, maybe} I should verify with the Extreme Value Theorem: \(f\) is continuous on \([-1,1]\), so it attains max and min at critical points or endpoints. The only critical point is at \(\sqrt{2}/2\) (minimum), and the maximum at \(x=-1\) gives \(5\pi^2/4\).
+
+Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \end{caseblock}
 
 \begin{caseblock}{Naive self-distillation --- 100 steps}{red}
-We need the number of length-8 ternary sequences with no AA. Define $f(n)$ = number of valid sequences.
+I need the range of \(f(x) = (\arccos x)^2 + (\arcsin x)^2\).
+\textcolor{orange}{Hmm,} let me think.
 
-For first letter B or C: $2f(n-1)$. For first letter A: second must be B or C: $2f(n-2)$.
-Recurrence: $f(n) = 2f(n-1) + 2f(n-2)$, $f(1)=3$, $f(2)=8$.
+Identity: \(\arccos x + \arcsin x = \pi/2\). Let \(a = \arccos x\), \(b = \arcsin x\). Then \(b = \pi/2 - a\).
 
-Compute:
-$f(3) = 2\cdot8 + 2\cdot3 = 22$
-$f(4) = 2\cdot22 + 2\cdot8 = 60$
-$f(5) = 2\cdot60 + 2\cdot22 = 164$
-$f(6) = 2\cdot164 + 2\cdot60 = \textcolor{red}{388}$
-$f(7) = 2\cdot388 + 2\cdot164 = \textcolor{red}{1104}$
-$f(8) = 2\cdot1104 + 2\cdot388 = \textcolor{red}{2984}$
+\(f(x) = a^2 + (\pi/2 - a)^2 = 2a^2 - \pi a + \pi^2/4\).
 
-Thus $\boxed{2984}$.
+This is a quadratic in \(a\). Since \(a = \arccos x\) with \(x \in [-1,1]\),
+\textcolor{red}{\(a \in [0, \pi/2]\)}.
+
+Vertex at \(a = \pi/4\): \(f = \pi^2/8\) (minimum).
+Endpoints: \(a=0\) gives \(\pi^2/4\); \textcolor{red}{\(a=\pi/2\)} also gives \(\pi^2/4\).
+Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{\pi^2}{4} \right]}\).
 \end{caseblock}
 \begin{casenote}
-The naive-distilled model proceeds confidently without verification, makes an arithmetic slip at $f(6)$ ($2\cdot164+2\cdot60=448$, not $388$), and never catches the error. Epistemic tokens are entirely absent.
+The naive-distilled model incorrectly restricts the domain of \(\arccos x\) to \([0, \pi/2]\) instead of \([0, \pi]\), then only checks two endpoints---both yielding the same value---and confidently concludes the maximum is \(\pi^2/4\). The correct maximum at \(x=-1\) (\(5\pi^2/4\)) is never examined. The single ``Hmm'' at the start does not trigger verification of the domain assumption. This pattern is consistent with the early epistemic suppression observed in naive self-distillation (Figures~4--5): the model becomes overconfident in its initial framing and skips the boundary checks that the base model performs naturally.
 \end{casenote}
 
-\begin{caseblock}{Masked self-distillation: setup and check}{orange}
-We want $a_8$, the number of ternary sequences of length 8 with no adjacent A's.
+\begin{caseblock}{Masked self-distillation: domain preserved}{orange}
+I need the range of \(f(x) = (\arccos x)^2 + (\arcsin x)^2\).
+\textcolor{orange}{Hmm,} let me think.
 
-Define $f(n)$: number of valid length-$n$ sequences.
-$f(1)=3$ (A, B, C). $f(2)=8$ (all 9 except AA).
+Identity: \(\arccos x + \arcsin x = \pi/2\). Let \(a = \arccos x\), \(b = \arcsin x\). Then \(b = \pi/2 - a\).
 
-For $n\ge3$, condition on the first character:
-If first = B or C (2 ways), the rest is any valid length-$(n-1)$ sequence: contribution $2f(n-1)$.
-If first = A, second cannot be A, so second = B or C (2 ways), then any valid length-$(n-2)$: contribution $2f(n-2)$.
+\(f(x) = a^2 + (\pi/2 - a)^2 = 2a^2 - \pi a + \pi^2/4\).
 
-Recurrence: $f(n)=2f(n-1)+2f(n-2)$.
+Since \(a = \arccos x\) and \(x \in [-1,1]\), \textbf{\(a \in [0, \pi]\)}.
 
-Now compute upward. \textcolor{orange}{Check with} a known base: $f(3)$ should be $27 - \{(AA*), (*AA)\} + (AAA) = 27-6+1=22$. Recurrence: $2\cdot8+2\cdot3=22$. \textcolor{orange}{Good.}
-\end{caseblock}
+Vertex at \(a = \pi/4\): \(f = \pi^2/8\).
+Endpoints: \(a = 0\) gives \(\pi^2/4\); \(a = \pi\) gives \(2\pi^2 - \pi^2 + \pi^2/4 = 5\pi^2/4\).
 
-\begin{caseblock}{Masked self-distillation: computation and verification}{orange}
-$f(4) = 2\cdot22 + 2\cdot8 = 44+16 = 60$
-$f(5) = 2\cdot60 + 2\cdot22 = 120+44 = 164$
-$f(6) = 2\cdot164 + 2\cdot60 = 328+120 = \textcolor{red}{438}$.
-\textcolor{orange}{Wait ---} this addition is wrong: $328+120=448$, not $438$. Correcting it gives $f(6)=448$.
-$f(7) = 2\cdot448 + 2\cdot164 = 896+328 = 1224$
-$f(8) = 2\cdot1224 + 2\cdot448 = 2448+896 = 3344$
+\textcolor{orange}{Wait, hold on.} Earlier, I thought the minimum was at \(a = \pi/4\) (\(x = \sqrt{2}/2\)). \textcolor{orange}{Let me verify} with the original function: at \(x = 1\), \(f = 0 + (\pi/2)^2 = \pi^2/4\). At \(x = -1\), \(f = \pi^2 + (-\pi/2)^2 = 5\pi^2/4\). \textcolor{orange}{All consistent.}
 
-\textcolor{orange}{Wait --- at} $n=6$, is that $328+120=448$ correct? $2\cdot164=328$, $2\cdot60=120$, yes. $n=7$: $2\cdot448=896$, $2\cdot164=328$, $896+328=1224$. $n=8$: $2\cdot1224=2448$, $2\cdot448=896$, sum $=3344$. \textcolor{orange}{All consistent.}
-
-Thus $\boxed{3344}$.
+Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \end{caseblock}
 \begin{casenote}
-The masked-distilled model preserves verification tokens (``Check,'' ``Wait,'' ``Good''), detects an arithmetic slip, corrects it, and reaches the correct result.
+The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
 
 \end{document}
