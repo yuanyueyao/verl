@@ -1,9 +1,9 @@
 #!/bin/bash
-# 实验：COT Masked OPSD on Qwen3-4B-Instruct (8 GPUs)
-# 用法：bash recipe/RLSD/run_exp_cot_masked_opsd_qwen3_4b.sh
+# 实验：COT Naive OPSD on Qwen3-1.7B (4 GPUs, devices 4-7)
+# 用法：bash recipe/RLSD/run_exp_cot_naive_opsd_qwen3_1.7b.sh
 #
-# 假设：mask 保护 student 的 epistemic token → 防止 COT teacher 导致的推理退化
-# 与 naive 串行运行，naive 跑完后手动启动此脚本。
+# 假设：COT reference_solution 会抑制 epistemic verbalization → 推理退化
+# 与 masked 串行运行，先跑 naive。
 
 set -euo pipefail
 
@@ -20,29 +20,29 @@ export NCCL_DEBUG=WARN
 export VERL_TMP_ROOT=/data3/yyy/tmp
 export TMPDIR="${VERL_TMP_ROOT}"
 export RAY_TMPDIR="${VERL_TMP_ROOT}/ray"
-mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"    
+mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-MODEL_PATH=/data3/yyy/models/Qwen3-4B-Instruct-2507
+MODEL_PATH=/data3/yyy/models/Qwen3-1.7B
 TRAIN_DATA=/data3/yyy/verl/data/Openthoughts_math_30k_opsd/data/train.parquet
 MATH_DIR=/data3/yyy/verl/data/math
-CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_exp_cot_masked_opsd_qwen3_4b
+CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_exp_cot_naive_opsd_qwen3_1.7b
 
 LOG_DIR="${VERL_ROOT}/logs/rlsd"
 mkdir -p "${LOG_DIR}" "${CKPT_DIR}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-LOG_FILE="${LOG_DIR}/exp_cot_masked_opsd_qwen3_4b_${TIMESTAMP}.log"
+LOG_FILE="${LOG_DIR}/exp_cot_naive_opsd_qwen3_1.7b_${TIMESTAMP}.log"
 
 echo "========================================================"
-echo " 实验：COT Masked OPSD on Qwen3-4B-Instruct (8 GPUs)"
+echo " 实验：COT Naive OPSD on Qwen3-1.7B (4 GPUs)"
 echo "  模型: ${MODEL_PATH}"
 echo "  数据: ${TRAIN_DATA}"
 echo "  Ref:  COT_Reason (完整思考链，含 epistemic tokens)"
-echo "  Mask: token_identity (保护 epistemic token 位置)"
+echo "  Mask: NONE (negative control — expects degradation)"
 echo "  日志: ${LOG_FILE}"
 echo "  步数: 100"
 echo "========================================================"
@@ -62,7 +62,7 @@ python recipe/RLSD/main_rlsd.py \
     actor_rollout_ref.actor.ppo_max_token_len_per_gpu=32768 \
     actor_rollout_ref.rollout.temperature=1.0 \
     actor_rollout_ref.rollout.top_p=0.9 \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
+    actor_rollout_ref.rollout.gpu_memory_utilization=0.6 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.max_model_len=28672 \
     actor_rollout_ref.rollout.max_num_batched_tokens=32768 \
@@ -72,7 +72,7 @@ python recipe/RLSD/main_rlsd.py \
     data.max_response_length=16384 \
     trainer.default_local_dir="${CKPT_DIR}" \
     trainer.project_name=rlsd \
-    trainer.experiment_name="cot-masked-opsd-qwen3-4b-${TIMESTAMP}" \
+    trainer.experiment_name="cot-naive-opsd-qwen3-1.7b-${TIMESTAMP}" \
     trainer.total_training_steps=100 \
     trainer.save_freq=50 \
     trainer.test_freq=10 \
@@ -83,7 +83,7 @@ python recipe/RLSD/main_rlsd.py \
     rlsd.student_rollout_per_problem=1 \
     rlsd.grpo_only=false \
     rlsd.opsd_only=true \
-    rlsd.sd_mask_mode=token_identity \
+    rlsd.sd_mask_mode=none \
     rlsd.reference_column=COT_Reason \
     rlsd.skip_initial_eval=false \
     rlsd.eval_aime_avg_at_n=12 \

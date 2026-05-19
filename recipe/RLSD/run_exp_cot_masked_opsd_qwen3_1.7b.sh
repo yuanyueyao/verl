@@ -1,6 +1,6 @@
 #!/bin/bash
-# 实验：COT Masked OPSD on Qwen3-4B-Instruct (8 GPUs)
-# 用法：bash recipe/RLSD/run_exp_cot_masked_opsd_qwen3_4b.sh
+# 实验：COT Masked OPSD on Qwen3-1.7B (4 GPUs, devices 4-7)
+# 用法：bash recipe/RLSD/run_exp_cot_masked_opsd_qwen3_1.7b.sh
 #
 # 假设：mask 保护 student 的 epistemic token → 防止 COT teacher 导致的推理退化
 # 与 naive 串行运行，naive 跑完后手动启动此脚本。
@@ -20,25 +20,25 @@ export NCCL_DEBUG=WARN
 export VERL_TMP_ROOT=/data3/yyy/tmp
 export TMPDIR="${VERL_TMP_ROOT}"
 export RAY_TMPDIR="${VERL_TMP_ROOT}/ray"
-mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"    
+mkdir -p "${TMPDIR}" "${RAY_TMPDIR}"
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-MODEL_PATH=/data3/yyy/models/Qwen3-4B-Instruct-2507
+MODEL_PATH=/data3/yyy/models/Qwen3-1.7B
 TRAIN_DATA=/data3/yyy/verl/data/Openthoughts_math_30k_opsd/data/train.parquet
 MATH_DIR=/data3/yyy/verl/data/math
-CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_exp_cot_masked_opsd_qwen3_4b
+CKPT_DIR=/data3/yyy/verl/checkpoints/rlsd_exp_cot_masked_opsd_qwen3_1.7b
 
 LOG_DIR="${VERL_ROOT}/logs/rlsd"
 mkdir -p "${LOG_DIR}" "${CKPT_DIR}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-LOG_FILE="${LOG_DIR}/exp_cot_masked_opsd_qwen3_4b_${TIMESTAMP}.log"
+LOG_FILE="${LOG_DIR}/exp_cot_masked_opsd_qwen3_1.7b_${TIMESTAMP}.log"
 
 echo "========================================================"
-echo " 实验：COT Masked OPSD on Qwen3-4B-Instruct (8 GPUs)"
+echo " 实验：COT Masked OPSD on Qwen3-1.7B (4 GPUs)"
 echo "  模型: ${MODEL_PATH}"
 echo "  数据: ${TRAIN_DATA}"
 echo "  Ref:  COT_Reason (完整思考链，含 epistemic tokens)"
@@ -72,7 +72,7 @@ python recipe/RLSD/main_rlsd.py \
     data.max_response_length=16384 \
     trainer.default_local_dir="${CKPT_DIR}" \
     trainer.project_name=rlsd \
-    trainer.experiment_name="cot-masked-opsd-qwen3-4b-${TIMESTAMP}" \
+    trainer.experiment_name="cot-masked-opsd-qwen3-1.7b-${TIMESTAMP}" \
     trainer.total_training_steps=100 \
     trainer.save_freq=50 \
     trainer.test_freq=10 \
