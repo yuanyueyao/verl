@@ -617,8 +617,8 @@ The self-distillation column applies to both naive self-distillation and masked 
 \textbf{Hyperparameter} & \textbf{Self-Distillation} & \textbf{SFT} & \textbf{GRPO} \\
 \midrule
 \multicolumn{4}{l}{\textbf{Optimization}} \\
-Optimizer & \multicolumn{3}{c}{AdamW} \\
-Learning rate & $5 \times 10^{-6}$ & $1 \times 10^{-5}$ & $5 \times 10^{-6}$ \\
+Optimizer & AdamW & AdamW & AdamW \\
+Learning rate & $5 \times 10^{-6}$ & $5 \times 10^{-6}$ & $5 \times 10^{-6}$ \\
 LR schedule & constant & constant & constant \\
 Warmup ratio & 0.03 & 0.03 & 0.03 \\
 Weight decay & 0.01 & 0.01 & 0.01 \\
@@ -653,7 +653,6 @@ Top-$p$ & 0.95 & 0.95 & 0.95 \\
 Repetition penalty & 1.0 & 1.0 & 1.0 \\
 Max prompt tokens & 8,192 & 8,192 & 8,192 \\
 Max completion tokens & 16,384 & 16,384 & 16,384 \\
-Random seed & \multicolumn{3}{c}{42} \\
 \bottomrule
 \end{tabular}
 \caption{Training hyperparameters for all methods. ``---'' indicates the setting is not applicable. Shared values are merged across columns.}
