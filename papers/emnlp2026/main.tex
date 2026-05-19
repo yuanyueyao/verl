@@ -684,6 +684,17 @@ Please reason step by step, and put your final answer within \textbackslash boxe
 
 Teacher and student share the same parameters but differ in conditioning: the teacher receives the reference solution as privileged context, while the student sees only the problem. The teacher does not generate tokens during training---its next-token distribution is computed implicitly through a single forward pass that conditions on the reference solution. The student then minimizes its KL divergence to this distribution at each position (except masked epistemic positions). The teacher conditions on the \texttt{COT\_Reason} field of OpenThoughts~\cite{guha2025openthoughts}.
 
+\section{Supervised Fine-Tuning Baseline}
+
+Supervised Fine-Tuning (SFT) trains the model to predict a target response given a problem prompt using a standard next-token cross-entropy loss.
+Given a dataset of pairs $\{(x_i, y_i)\}$, where $x_i$ is a math problem and $y_i$ is the corresponding full reasoning trace, SFT minimizes:
+\[
+\mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{N}\sum_{i=1}^N \frac{1}{|y_i|}\sum_{t=1}^{|y_i|} \log \pi_\theta(y_{i,t} \mid x_i, y_{i,<t}).
+\]
+The loss is computed only on response tokens; prompt tokens are masked.
+We use the same training data as self-distillation (the \texttt{COT\_Reason} field of OpenThoughts), with 100 steps, learning rate $5 \times 10^{-6}$, and batch size 32.
+Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
+
 \onecolumn
 \section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
@@ -775,7 +786,7 @@ Thus: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
 
-\section{GRPO Baseline}
+\section{Group Relative Policy Optimization (GRPO)}
 
 Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning algorithm for fine-tuning policy LLMs $\pi_\theta$ without a separately learned value function. Its key idea is to normalize rewards within a group of responses sampled from the same prompt, thereby stabilizing optimization.
 
@@ -791,6 +802,6 @@ Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}
     \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
 \Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
 \]
-Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response at the final token. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
+Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \end{document}
