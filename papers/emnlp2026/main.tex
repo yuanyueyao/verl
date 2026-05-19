@@ -705,27 +705,21 @@ Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 
 \begin{caseblock}{Naive self-distillation: confident error without verification}{red}
 I need the range of \(f(x) = (\arccos x)^2 + (\arcsin x)^2\).
-\textcolor{orange}{Hmm,} let me think about how to approach this.
+\textcolor{orange}{Hmm,} let me think.
 
-First, I remember that \(\arccos x\) and \(\arcsin x\) are related. Specifically, for any \(x \in [-1,1]\), \(\arccos x + \arcsin x = \pi/2\). That's a key identity. Let \(a = \arccos x\) and \(b = \arcsin x\). Then \(b = \pi/2 - a\). Let me substitute that into the expression:
+First, \(\arccos x + \arcsin x = \pi/2\). Let \(a = \arccos x\), \(b = \arcsin x\). Then \(b = \pi/2 - a\).
 
-\(f(x) = a^2 + (\pi/2 - a)^2 = a^2 + (\pi^2/4 - \pi a + a^2) = 2a^2 - \pi a + \pi^2/4\).
+\(f(x) = a^2 + (\pi/2 - a)^2 = 2a^2 - \pi a + \pi^2/4\).
 
-Now, this is a quadratic function in \(a\). Since \(a = \arccos x\) and \(x \in [-1,1]\),
-\textcolor{red}{\(a \in [0, \pi/2]\)}.
+Since \(a = \arccos x\) with \(x \in [-1,1]\), \textcolor{red}{\(a \in [0, \pi/2]\)}.
 
-This is a parabola opening upwards (the coefficient of \(a^2\) is positive), so the vertex gives the minimum. Vertex at \(a = \pi/4\):
+Vertex at \(a = \pi/4\): \(f = \pi^2/8\) (minimum).
+Endpoints: \(a=0\) gives \(\pi^2/4\); \textcolor{red}{\(a=\pi/2\)} also gives \(\pi^2/4\).
 
-\(f(\pi/4) = 2(\pi^2/16) - \pi^2/4 + \pi^2/4 = \pi^2/8\).
-
-Now evaluate at the endpoints. At \(a = 0\): \(f = \pi^2/4\). At \textcolor{red}{\(a = \pi/2\)}: \(f = 2(\pi^2/4) - \pi(\pi/2) + \pi^2/4 = \pi^2/4\). Both endpoints agree.
-
-To confirm, let me test with specific values. At \(x = 0\), \(\arccos 0 = \pi/2\), \(\arcsin 0 = 0\), so \(f(0) = \pi^2/4\). At \(x = 1\), \(\arccos 1 = 0\), \(\arcsin 1 = \pi/2\), so \(f(1) = \pi^2/4\). At \(x = \sqrt{2}/2\), both are \(\pi/4\), giving \(\pi^2/8\). The function indeed attains its minimum at \(\pi^2/8\) and maximum at \(\pi^2/4\).
-
-Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{\pi^2}{4} \right]}\).
+Therefore, the range of \(f(x)\) is \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{\pi^2}{4} \right]}\).
 \end{caseblock}
 \begin{casenote}
-The naive-distilled model incorrectly restricts the domain of \(\arccos x\) to \([0, \pi/2]\) instead of \([0, \pi]\), then only checks two endpoints---both yielding the same value---and confidently concludes the maximum is \(\pi^2/4\). The correct maximum at \(x=-1\) (\(5\pi^2/4\)) is never examined. The single ``Hmm'' at the start does not trigger verification of the domain assumption. This pattern is consistent with the early epistemic suppression observed in naive self-distillation (Figures~4--5): the model becomes overconfident in its initial framing and skips the boundary checks that the base model performs naturally.
+The naive-distilled model proceeds directly from setup to conclusion with no reflective pauses. The domain of \(\arccos x\) is incorrectly truncated to \([0, \pi/2]\) (the correct range is \([0, \pi]\)). Only two endpoints are evaluated---both yielding \(\pi^2/4\)---and the model immediately concludes the maximum is \(\pi^2/4\), never examining \(x = -1\) where the true maximum \(5\pi^2/4\) occurs. The sole ``Hmm'' at the start is the only epistemic token in the entire response: no ``Wait,'' no ``let me check,'' no self-questioning of the domain assumption. In contrast to the base model---which pauses to verify the identity, catches an arithmetic slip, differentiates to confirm the critical point, and invokes the Extreme Value Theorem---the naive-distilled model simply executes the derivation and stops.
 \end{casenote}
 
 \begin{caseblock}{Masked self-distillation: preserved verification, self-corrects}{orange}
