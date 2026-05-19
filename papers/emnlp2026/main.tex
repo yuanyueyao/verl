@@ -695,26 +695,6 @@ The loss is computed only on response tokens; prompt tokens are masked.
 We use the same training data as self-distillation (the \texttt{COT\_Reason} field of OpenThoughts dataset), with 100 steps, learning rate $5 \times 10^{-6}$, and batch size 32.
 Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
-\section{Group Relative Policy Optimization (GRPO)}
-
-Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning algorithm for fine-tuning policy LLMs $\pi_\theta$ without a separately learned value function. Its key idea is to normalize rewards within a group of responses sampled from the same prompt, thereby stabilizing optimization.
-
-Given a query $q$, the old policy $\pi_{\theta}^{\text{old}}$ generates $G$ candidate responses $\{o_1, \dots, o_G\}$. Each response $o_i$ is assigned a scalar reward $R(q, o_i)$. Group-wise z-score normalization is then applied to obtain an advantage shared across the tokens of the response:
-\[
-\hat{A}_{i,t} = \frac{R(q, o_i) - \operatorname{mean}(\{R(q, o_j)\}_{j=1}^G)}
-{\operatorname{std}(\{R(q, o_j)\}_{j=1}^G) + \varepsilon}.
-\]
-Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}^{\text{old}}(o_{i,t} \mid q, o_{i,<t})$. The policy is updated with a clipped surrogate objective, similar to PPO, combined with a KL-divergence penalty to constrain policy drift:
-\[
-\mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^G \frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\!\Bigl(
-    r_\theta(o_{i,t})\,\hat{A}_{i,t},\;
-    \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
-\Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
-\]
-Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
-
-
-
 \onecolumn
 \section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
@@ -805,5 +785,24 @@ Thus: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \begin{casenote}[Analysis]
 The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
+
+
+\section{Group Relative Policy Optimization (GRPO)}
+
+Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning algorithm for fine-tuning policy LLMs $\pi_\theta$ without a separately learned value function. Its key idea is to normalize rewards within a group of responses sampled from the same prompt, thereby stabilizing optimization.
+
+Given a query $q$, the old policy $\pi_{\theta}^{\text{old}}$ generates $G$ candidate responses $\{o_1, \dots, o_G\}$. Each response $o_i$ is assigned a scalar reward $R(q, o_i)$. Group-wise z-score normalization is then applied to obtain an advantage shared across the tokens of the response:
+\[
+\hat{A}_{i,t} = \frac{R(q, o_i) - \operatorname{mean}(\{R(q, o_j)\}_{j=1}^G)}
+{\operatorname{std}(\{R(q, o_j)\}_{j=1}^G) + \varepsilon}.
+\]
+Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}^{\text{old}}(o_{i,t} \mid q, o_{i,<t})$. The policy is updated with a clipped surrogate objective, similar to PPO, combined with a KL-divergence penalty to constrain policy drift:
+\[
+\mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^G \frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\!\Bigl(
+    r_\theta(o_{i,t})\,\hat{A}_{i,t},\;
+    \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
+\Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
+\]
+Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \end{document}
