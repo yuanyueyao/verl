@@ -80,7 +80,7 @@
   colbacktitle=#2!16,
   title={#1},
   fonttitle=\bfseries\small,
-  fontupper=\small\ttfamily,
+  fontupper=\fontsize{10.3pt}{12.2pt}\selectfont\ttfamily,
   arc=1mm,
   boxrule=0.55pt,
   left=8pt,
@@ -110,7 +110,7 @@
 \newtcolorbox{casenote}[1][]{
   colback=PromptBg,
   colframe=PromptBorder,
-  fontupper=\small,
+  fontupper=\fontsize{10.3pt}{12.2pt}\selectfont,
   arc=1mm,
   boxrule=0.4pt,
   left=8pt,
@@ -160,9 +160,7 @@ The student first samples its own response. The teacher, now seeing the referenc
 \label{fig:teaser}
 \end{figure}
 
-Recent work has demonstrated strong promising results with this paradigm.
-SDPO~\cite{hubotter2026reinforcement} shows that dense token-level self-distillation outperforms Reinforcement Learning with Verifiable Rewards (RLVR)~\cite{guo2025deepseek,yu2025dapo,shao2024deepseekmath} and Supervised Fine-Tuning (SFT)~\cite{ouyang2022training,wei2022flan,chung2024scaling} baselines across science~QA, tool-use, and code generation benchmarks, while substantially shortening model outputs.
-SimpleSD~\cite{zhang2026simple} reports similar gains and length reduction for code generation, OPSDL~\cite{zhang2026opsdl} extends self-distillation to long-context learning, and UniSD~\cite{jin2026unisd} demonstrates broad applicability across diverse adaptation benchmarks.
+Recent work~\cite{hubotter2026reinforcement,zhang2026simple,zhang2026opsdl,jin2026unisd} has been successful across science QA, tool use, code generation, world knowledge, long-context learning, and multi-task adaptation.
 These successes suggest that self-distillation can be effective in settings where concise, confident outputs are sufficient.
 
 However, this paradigm harbors a striking and structured failure mode.
@@ -170,30 +168,31 @@ When applied to challenging mathematical reasoning benchmarks~\cite{hendrycks202
 This contrast---self-distillation appears effective in tool, chemistry, world knowledge, or code-like settings yet fails in our mathematical reasoning setting---raises a fundamental question:
 \textit{Why does self-distillation degrade mathematical reasoning?}
 
-We trace the root cause to the suppression of epistemic tokens---the model's explicit uncertainty expressions like ``Wait,'' ``Hmm,'' ``perhaps,'' and ``maybe.''
-When the teacher sees the correct solution, it produces confident reasoning with minimal uncertainty. The student imitates this style and loses the exploratory behavior needed to recover from errors.
+We trace the root cause to the suppression of epistemic tokens---the model's explicit uncertainty expressions like ``Wait'', ``Hmm'', ``perhaps'', and ``alternatively''.
+When the teacher sees the detailed reference solution, it produces confident reasoning with minimal uncertainty. The student imitates this style and loses the exploratory behavior needed to recover from errors.
 A token-level analysis reveals why: the teacher systematically assigns lower probability to student-generated epistemic tokens, creating a suppression signal that pushes the student toward less reflective continuations.
-Figure~\ref{fig:teaser} illustrates this contrast.This mechanism grows more severe when teacher is provided with richer reference context: concise solutions cause mild suppression, while solutions with full reasoning traces cause extreme suppression.
+Figure~\ref{fig:teaser} illustrates this contrast. This mechanism grows more severe when teacher is provided with richer reference context: concise solutions cause mild suppression, while solutions with full reasoning traces cause extreme suppression.
 
-This diagnosis directly motivates a simple intervention: \textit{epistemic token masking}. During self-distillation, we exclude positions where the student generates an epistemic token from the distillation loss, removing the suppressive signal while preserving ordinary distillation elsewhere.
+
+This diagnosis directly motivates a simple intervention: \textit{epistemic token masking}. During self-distillation, we exclude positions where the student generates an epistemic token from the distillation loss, removing the suppressive signal while preserving ordinary distillation elsewhere. Figure~\ref{fig:overview} illustrates this contrast.
 
 Our contributions are:
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Functional-anchor diagnosis}: We identify epistemic tokens as sparse but important anchors for mathematical self-verification and show that self-distillation severely concentrates on these epistemic tokens, thereby degrading reasoning.
+    \item We show that on-policy self-distillation severely degrading reasoning ability by suppressing epistemic tokens, and the severity is based on the detail level of teacher's privileged context.
 
-    \item \textbf{Reference-context analysis}: We show that epistemic-token suppression is controlled by the teacher's privileged context: concise solutions induce mild suppression, whereas full reasoning traces cause severe suppression.
+    \item We introduce masked self-distillation, a drop-in loss modification that excludes epistemic-token positions from the self-distillation loss, preserving the student's reflective reasoning behavior while keeping self-distillation's advantage.
 
-    \item \textbf{Masked self-distillation}: We introduce a drop-in loss modification that masks epistemic-token positions during self-distillation. The resulting objective protects self-verification behavior.
-\end{enumerate}
+    \item We evaluate masked self-distillation on AIME24, AIME25, and MATH-500 on reasoning models. Masked self-distillation achieves the best average score over naive self-distillation (\(+9.2\)), SFT (\(+2.4\)), and GRPO (\(+4.0\)).
+\end{enumerate} 
 \begin{figure*}[t!]
 \centering
 \includegraphics[width=\textwidth]{figures/emnlp_overview.pdf}
 \caption{\textbf{Overview of epistemic token masking.}
-Using a simple math problem as a running example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom).
-\textbf{Yellow-highlighted tokens} (``Hmm,'' ``Wait,'' ``check'') denote epistemic tokens---uncertainty expressions and self-verification signals.
-\textbf{Top:} Naive self-distillation applies dense per-token KL at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic alternatives alongside genuine error corrections; post-distillation, the student loses self-correction and retains the initial mistake.
-\textbf{Bottom:} Our masked loss protects epistemic positions from this pressure (while still penalizing genuine errors); post-distillation, the student retains epistemic tokens and arrives at the correct answer.
-Training curves on the right summarize the accuracy and output length trends for each method.}
+Using a simple math problem as a example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom).
+Orange-highlighted tokens denote \colorbox{orange!22}{epistemic tokens} (``Hmm,'' ``Wait,'' ``check'').
+\textbf{Top:} Naive self-distillation applies self-distillation signal at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic confidential alternatives.  Post-distillation, the student loses self-verification and retains the initial mistake.
+\textbf{Bottom:} Our masked loss protects epistemic positions while still penalizing errors. Post-distillation, the student retains self-verification and arrives at the correct answer.
+Training curves on the right summarize the accuracy and output length trends.}
 \label{fig:overview}
 \end{figure*}
 
@@ -239,14 +238,15 @@ We treat them as functional anchors for self-verification: signals that often ap
 Prior work on verbalized uncertainty shows that language models can express uncertainty in natural language and that such expressions can be studied through calibration, verbalized probabilities, and factuality-oriented fine-tuning~\cite{lin2022teaching,kadavath2022language,tian2023fine}.
 This supports treating uncertainty expressions as meaningful behavioral signals rather than mere style words.
 
+
 Related work on self-correction studies whether models can detect and repair their own errors, with mixed results~\cite{madaan2023self,huang2023large}, while process reward models add step-level supervision for verification~\cite{lightman2023lets,uesato2022solving,cobbe2021training}.
 These directions motivate our focus on local checking and revision behavior inside reasoning traces.
 We ask whether dense self-distillation preserves or suppresses the epistemic tokens associated with that behavior.
-
 % ═══════════════════════════════════════════════════════════════
 \section{Diagnosis: Why Self-Distillation Degrades Reasoning}
 \label{sec:diagnosis}
 % ═══════════════════════════════════════════════════════════════
+
 
 Before proposing a solution, we first ask what self-distillation is optimizing away.
 Our diagnosis starts from a simple view: not all response tokens play the same role in reasoning.
@@ -263,7 +263,7 @@ Epistemic tokens are part of this behavior rather than just style, so suppressin
 \subsection{Token-Level Signal Concentration}
 
 To quantify the teacher's suppression of epistemic tokens, we conduct a controlled forward-pass probe.
-Using DeepSeek-R1-Distill-Qwen-7B~\cite{guo2025deepseek}, we sample student-generated responses on AIME-style problems, then compute both the teacher (conditioned on a full reasoning trace) and student (conditioned only on the problem) next-token probability distributions at every token position.
+Using DeepSeek-R1-Distill-Qwen-7B~\cite{guo2025deepseek}, we sample student-generated responses on AIME problems~\cite{maa_aime}, then compute both the teacher (conditioned on a full reasoning trace) and student (conditioned only on the problem) next-token probability distributions at every token position.
 
 Table~\ref{tab:prob_probe} reports the mean probability assigned to the sampled student-generated token at each position, grouped by whether that token is epistemic or non-epistemic.
 
@@ -282,7 +282,7 @@ Student  & 0.417 & 0.761 & 0.55$\times$ \\
 \label{tab:prob_probe}
 \end{table}
 
-The teacher assigns only \textbf{0.127} mean probability to epistemic tokens---5.9$\times$ lower than the 0.751 assigned to non-epistemic tokens.
+The teacher assigns only 0.127 mean probability to epistemic tokens---5.9$\times$ lower than the 0.751 assigned to non-epistemic tokens.
 The student, in contrast, maintains a higher epistemic probability of 0.417.
 This creates a concentrated token-level self-distillation signal at epistemic-token positions, where the student response contains uncertainty or reflection tokens but the teacher's full next-token distribution shifts probability mass toward non-epistemic continuations.
 In other words, this signal pushes the student away from reflective continuations and toward the teacher's more confident continuations.
@@ -296,14 +296,14 @@ The bottom bar chart shows that their mean signal values are comparable (0.147 v
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_token_kl_strip.pdf}
 \caption{\textbf{Token-level self-distillation signal heatmap on representative student response.}
-Color encodes the token-level self-distillation signal; outlined boxes mark epistemic tokens and error/correction positions.}
+Color encodes the token-level self-distillation signal. Outlined boxes mark epistemic tokens and error/correction positions.}
 \label{fig:token_kl_strip}
 \end{figure}
 
 Figure~\ref{fig:kl_concentration} shows this effect.
 Epistemic tokens occupy roughly 12\% of response tokens but receive $\sim$52\% of the aggregate token-level self-distillation signal---a 4.3$\times$ concentration effect.
-Operationally, this signal is the per-position teacher-to-student next-token KL term in the self-distillation objective.
-Thus, the objective does not treat all tokens equally; it concentrates on epistemic tokens that implement hesitation, checking, and recovery.
+Operationally, this signal is the per-token teacher-to-student next-token KL term in the self-distillation objective.
+Thus, the objective does not treat all tokens equally. It concentrates on epistemic tokens that implement hesitation, checking, and recovery.
 
 \begin{figure}[ht]
 \centering
@@ -361,20 +361,22 @@ In short, epistemic tokens are infrequent yet signal-heavy and functionally impo
 
 The diagnosis above reveals the root cause: the token-level self-distillation signal concentrates on epistemic tokens.
 The method follows directly from this insight.
-we mask self-distillation at positions where the sampled student token belongs to epistemic token.
+We mask self-distillation at positions where the sampled student token belongs to an epistemic token.
 
 \subsection{Epistemic Token Set}
 \label{sec:epistemic_token_set}
 
-We define a lightweight set of epistemic tokens as an operational approximation:
+To define the epistemic token set, we start from prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, then refine the list using our diagnostic probes, where these positions also show high student-side token entropy.
+This gives a lightweight token set, including:
 \begin{equation}
 \begin{aligned}
-    \mathcal{E} = \{&\text{wait}, \text{hmm}, \text{perhaps}, \text{maybe}, \text{actually}, \\
-                    &\text{alternatively}, \text{seems}, \text{might}, \text{likely}, \text{check}\}
+    \mathcal{E} = \{&\text{wait}, \text{hmm}, \text{perhaps}, \text{maybe}, \\
+                    &\text{actually}, \text{alternatively}, \text{seems}, \\
+                    &\text{might}, \text{likely}, \text{check}, \ldots\}
 \end{aligned}
 \end{equation}
 
-The set is intentionally small and interpretable: it covers common uncertainty, reconsideration, and self-checking tokens highlighted by the diagnostic probes.
+The set is small and interpretable, covering uncertainty, reconsideration, and self-checking tokens.
 To handle surface-form variation (capitalization, punctuation, surrounding whitespace), we enumerate common variants of each token and encode them with the model's tokenizer.
 This yields a set of token IDs $\mathcal{I}$, cached and reused across training steps.
 
@@ -389,7 +391,7 @@ We construct a binary token mask $M \in \{0,1\}^L$:
     \end{cases}
 \end{equation}
 
-In implementation, we use the same clipped full-distribution teacher-to-student KL for both naive self-distillation and masked self-distillation; masking is the only difference between the two variants.
+In implementation, we use the same clipped full-distribution teacher-to-student KL for both naive self-distillation and masked self-distillation. Masking is the only difference between the two variants.
 Let $p^{\text{T}}_{t,v}$ and $p^{\text{S}}_{t,v}$ denote the teacher and student probabilities for vocabulary item $v$ at response position $t$.
 The per-token self-distillation signal is:
 \begin{equation}
@@ -415,7 +417,7 @@ The masked self-distillation loss sums this signal over non-masked positions:
 \label{eq:masked_loss}
 \end{equation}
 
-where $\varepsilon = 10^{-8}$ guards against the degenerate case where all tokens are epistemic.
+where $\varepsilon = 10^{-8}$ avoids division by zero when all tokens are epistemic.
 The denominator normalizes by the number of \textit{non-masked} tokens, ensuring that masking does not artificially reduce the loss magnitude.
 For memory efficiency, we compute $\ell_t$ in response-position chunks rather than materializing the full $(L \times |\mathcal{V}|)$ distribution tensor at once. The mask is applied to each chunk before accumulation.
 Algorithm~\ref{alg:masked_opsd} summarizes the resulting training loop.
@@ -459,9 +461,7 @@ Algorithm~\ref{alg:masked_opsd} summarizes the resulting training loop.
 % ═══════════════════════════════════════════════════════════════
 \section{Experiments}
 % ═══════════════════════════════════════════════════════════════
-
-We evaluate masked self-distillation across two model scales under full-reasoning-trace self-distillation to test both the generality of the degradation phenomenon and the effectiveness of our intervention.
-
+We compare masked self-distillation with naive self-distillation and two representative post-training paradigms: supervised fine-tuning and GRPO~\cite{shao2024deepseekmath}, a reinforcement learning method with verifiable rewards.
 \subsection{Setup}
 
 \textbf{Models and data.}
@@ -470,7 +470,7 @@ Training data are drawn from the mathematical reasoning portion of OpenThoughts 
 The teacher receives the available full reasoning trace as privileged context, while other types of reference contexts (e.g., concise solutions, correct answer only) are used only in the diagnostic probe.
 
 \textbf{Baselines and evaluation.}
-We compare masked self-distillation against four baselines:(1) \textbf{naive self-distillation}, which uses the same teacher-to-student KL objective without masking. (2) the \textbf{base model} without any training, (3) \textbf{Supervised Fine-Tuning} (SFT) on full-reasoning-treace reference solutions, (4) \textbf{GRPO} with sparse outcome reward~\cite{shao2024deepseekmath}.
+We compare masked self-distillation against four baselines:(1) naive self-distillation, which uses the same teacher-to-student KL objective without masking. (2) the base model without any training, (3) Supervised Fine-Tuning (SFT) on full-reasoning-treace reference solutions, (4) GRPO with sparse outcome reward~\cite{shao2024deepseekmath}.
 More training details are reported in Appendix~\ref{app:hyperparams}.
 We evaluate on AIME 2024, AIME 2025~\cite{guo2025deepseek}, and MATH-500~\cite{hendrycks2021measuring}.
 For AIME, we report \textit{avg@12}: average correctness over 12 sampled responses per problem, macro-averaged over problems.
@@ -513,7 +513,7 @@ Table~\ref{tab:cot_results} reports the main results, testing whether masking mi
 \label{tab:cot_results}
 \end{table*}
 
-Across both model scales, SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution ($+$3.9pp for 1.5B). GRPO shows mixed results: on AIME it oscillates and ends below the base model, while on MATH-500 at 1.5B it gains 1.7~pp---consistent with prior findings that outcome-based RL can improve in-distribution accuracy but struggles on harder out-of-distribution benchmarks. This indicates that sparse outcome rewards provide insufficient signal for these models.
+Across both model scales, SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution ($+$3.9pp for 1.5B). GRPO provides no consistent improvement and ends near or below the base model on most benchmarks. We attribute this to the nature of our base model: DeepSeek-R1-Distill-Qwen is already distilled from a model that underwent extensive reinforcement learning~\cite{guo2025deepseek}, so its policy is already well-aligned with producing correct mathematical reasoning. The sparse outcome reward of GRPO therefore provides little additional gradient signal---a pattern consistent with prior observations that outcome-based RL is most effective when applied to pretrained base models rather than already reasoning-optimized checkpoints~\cite{shao2024deepseekmath}.
 Naive self-distillation degrades performance sharply, dropping 6--8~pp on AIME for both model sizes. Masked self-distillation avoids this degradation and achieves the best performance across all benchmarks, with larger margins on the smaller model.
 Full training trajectories are shown in Figures~\ref{fig:cot_aime} and~\ref{fig:cot_aime_7b}.
 
@@ -589,7 +589,7 @@ Our results suggest that post-training objectives should account for token funct
 \section{Conclusion}
 % ═══════════════════════════════════════════════════════════════
 In this paper, we identify a failure mode of on-policy self-distillation in mathematical reasoning. 
-We show that navie distillation degrades reflective reasoning ablitity through punishing epistemic tokens, thus suppressing the hesitation, revision, and self-verification behaviors needed for complex reasoning.
+We show that naive self-distillation degrades reflective reasoning ability through punishing epistemic tokens, thus suppressing the hesitation, revision, and self-verification behaviors needed for complex reasoning.
 To address this issue, we propose masked self-distillation, a simple objective modification that removes the loss term at epistemic-token positions while preserving ordinary distillation elsewhere. 
 Experiments on AIME24, AIME25, and MATH-500 show that masked self-distillation mitigates the degradation of naive self-distillation and preserves reflective reasoning behavior. 
 These results suggest that post-training objectives may need to account for token function, rather than treating all tokens similarly.
@@ -681,16 +681,16 @@ Please reason step by step, and put your final answer within \textbackslash boxe
 
 Teacher and student share the same parameters but differ in conditioning: the teacher receives the reference solution as privileged context, while the student sees only the problem. The teacher does not generate tokens during training---its next-token distribution is computed implicitly through a single forward pass that conditions on the reference solution. The student then minimizes its KL divergence to this distribution at each position (except masked epistemic positions). The teacher conditions on the \texttt{COT\_Reason} field of OpenThoughts~\cite{guha2025openthoughts}.
 
-\clearpage
 \onecolumn
 \section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
-\vspace{-4pt}
+\vspace{-1.1\baselineskip}
 We compare outputs from three training conditions based on DeepSeek-R1-Distill-Qwen-1.5B: the pretrained model (step~0), naive self-distillation (100 steps), and masked self-distillation (100 steps). Outputs are lightly condensed for presentation; full traces exhibit the same behaviors at greater length.
 Epistemic tokens (e.g., ``Hmm,'' ``Wait,'' ``check'') are \textcolor{orange}{highlighted in orange}; errors in \textcolor{red}{red}.
 \vspace{-2pt}
-\begin{problemblock}{Problem (MATH-500)}
+\begin{problemblock}{Evaluation prompt (MATH-500)}
 \textit{Let \(f(x) = (\arccos x)^2 + (\arcsin x)^2\). Find the range of \(f(x)\). All functions are in radians.}
+
 \end{problemblock}
 
 \begin{caseblock}{Base model: reflective reasoning with self-correction}{blue}
