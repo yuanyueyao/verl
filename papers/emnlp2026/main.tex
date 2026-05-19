@@ -690,9 +690,11 @@ This is a quadratic opening upwards; the vertex at \(\theta = \pi/4\) gives the 
 Minimum at \(\theta = \pi/4\): \(f = 2(\pi^2/16) - \pi^2/4 + \pi^2/4 = \pi^2/8\).
 
 Endpoints: \(\theta = 0\) (i.e., \(x=1\)): \(f = 0 + (\pi/2)^2 = \pi^2/4\).
-\(\theta = \pi\) (i.e., \(x=-1\)): \(f = 2\pi^2 - \pi^2 + \pi^2/4 = 5\pi^2/4\).
+\(\theta = \pi\) (i.e., \(x=-1\)): \(f = 2\pi^2 - \pi^2 + \pi^2/4 = \pi^2 + \pi^2/4 = \textcolor{red}{3\pi^2/4}\).
 
-\textcolor{orange}{Wait,} \(2\pi^2 - \pi^2 = \pi^2\), then \(+\pi^2/4 = 5\pi^2/4\). \textcolor{orange}{Let me double-check} by computing directly: \(f(-1) = (\arccos(-1))^2 + (\arcsin(-1))^2 = \pi^2 + (-\pi/2)^2 = \pi^2 + \pi^2/4 = 5\pi^2/4\). Good.
+\textcolor{orange}{Wait,} that's not right --- \(\pi^2\) is \(4\pi^2/4\), so adding \(\pi^2/4\) gives \(5\pi^2/4\), not \(3\pi^2/4\). I mistakenly combined the numerators without a common denominator. Correcting: \(f(\pi) = 5\pi^2/4\).
+
+\textcolor{orange}{Let me double-check} by computing directly: \(f(-1) = (\arccos(-1))^2 + (\arcsin(-1))^2 = \pi^2 + (-\pi/2)^2 = \pi^2 + \pi^2/4 = 5\pi^2/4\). Good, that matches.
 
 \textcolor{orange}{Let me also} find critical points via derivative:
 \(f'(x) = \frac{2}{\sqrt{1-x^2}}[\pi/2 - 2\arccos x]\).
@@ -733,9 +735,11 @@ Identity: \(\arccos x + \arcsin x = \pi/2\). Let \(a = \arccos x\), \(b = \arcsi
 Since \(a = \arccos x\) and \(x \in [-1,1]\), \textbf{\(a \in [0, \pi]\)}.
 
 Vertex at \(a = \pi/4\): \(f = \pi^2/8\).
-Endpoints: \(a = 0\) gives \(\pi^2/4\); \(a = \pi\) gives \(2\pi^2 - \pi^2 + \pi^2/4 = 5\pi^2/4\).
+Endpoints: \(a = 0\) gives \(\pi^2/4\); \(a = \pi\) gives \(2\pi^2 - \pi^2 = \pi^2\), so \(f = \textcolor{red}{\pi^2/4}\).
 
-\textcolor{orange}{Wait, hold on.} Earlier, I thought the minimum was at \(a = \pi/4\) (\(x = \sqrt{2}/2\)). \textcolor{orange}{Let me verify} with the original function: at \(x = 1\), \(f = 0 + (\pi/2)^2 = \pi^2/4\). At \(x = -1\), \(f = \pi^2 + (-\pi/2)^2 = 5\pi^2/4\). \textcolor{orange}{All consistent.}
+\textcolor{orange}{Wait, hold on ---} I dropped the \(\pi^2\) term! \(2\pi^2 - \pi^2 + \pi^2/4 = \pi^2 + \pi^2/4 = 5\pi^2/4\), not \(\pi^2/4\). That was a careless omission. Correcting: \(f(\pi) = 5\pi^2/4\).
+
+\textcolor{orange}{Let me verify} with the original function: at \(x = 1\), \(f = 0 + (\pi/2)^2 = \pi^2/4\). At \(x = -1\), \(f = \pi^2 + (-\pi/2)^2 = \pi^2 + \pi^2/4 = 5\pi^2/4\). \textcolor{orange}{Now everything is consistent.}
 
 Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \end{caseblock}
