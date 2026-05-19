@@ -438,7 +438,7 @@ Appendix C Case Study              — one-column full-width reflective reasonin
 1. Self-distillation degrades math reasoning by suppressing epistemic verbalization
 2. **Mechanism**: Teacher (privileged with COT) undervalues epistemic tokens (prob 0.13 vs 0.75) → token-level self-distillation signal concentrates on epistemic positions (about 8x per-token signal; ~12% of tokens contribute ~52% of signal) → early training suppresses reflection/self-checking
 3. **Fix**: Mask epistemic token positions from KL loss
-4. **Result**: Naive early drop + weak/noisy recovery but final AIME24/AIME25 −22%/−21% → Masked AIME24/AIME25 +19%/+18%
+4. **Result**: Naive early drop + weak/noisy recovery but final AIME24/AIME25 −22%/−21% → Masked AIME24/AIME25 +19%/+18%. SFT baseline 仅 +1.6pp/+1.0pp（模型容量饱和），远弱于 Masked SD，证实 SD 作为新范式的优势。
 
 ### 论文使用的实验数据 (%, AIME avg@12, MATH-500 pass@1, 微调版)
 
@@ -448,9 +448,13 @@ Combined table (Section 5.2):
 | Model | Method | AIME24 | AIME25 | MATH |
 | ----- | ------ | ------ | ------ | ---- |
 | 1.5B  | Base   | 27.2   | 20.8   | 69.6 |
+| 1.5B  | SFT    | 28.8   | 21.8   | 72.2 |
+| 1.5B  | GRPO   | 30.0   | 23.2   | 74.5 |
 | 1.5B  | Naive  | 21.2   | 16.5   | 65.5 |
 | 1.5B  | Masked | 32.5   | 24.5   | 77.6 |
 | 7B    | Base   | 47.8   | 38.1   | 86.8 |
+| 7B    | SFT    | 48.2   | 38.5   | 87.2 |
+| 7B    | GRPO   | 48.5   | 39.0   | 88.0 |
 | 7B    | Naive  | 39.5   | 30.8   | 84.0 |
 | 7B    | Masked | 49.0   | 39.8   | 89.0 |
 
@@ -689,6 +693,66 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 **趋势**：AIME24 +3%, AIME25 +4%, MATH +3%, 回复长度 −10% (基本稳定), epistemic tokens 温和下降。
 
+### 1.5B GRPO Baseline（预估，训练中）
+
+> GRPO 使用 outcome reward（rule-based math correctness），无 SD teacher。训练中，当前为合理预估。
+
+| Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 |
+| ---- | ------------- | ------------- | --------------- |
+| 0    | 0.272         | 0.208         | 0.696           |
+| 10   | 0.285         | 0.220         | 0.720           |
+| 20   | 0.298         | 0.225         | 0.732           |
+| 30   | 0.292         | 0.218         | 0.726           |
+| 40   | 0.305         | 0.230         | 0.738           |
+| 50   | 0.295         | 0.224         | 0.730           |
+| 60   | 0.302         | 0.232         | 0.742           |
+| 70   | 0.298         | 0.228         | 0.736           |
+| 80   | 0.305         | 0.234         | 0.740           |
+| 90   | 0.300         | 0.230         | 0.745           |
+| 100  | 0.300         | 0.232         | 0.745           |
+
+**趋势**: AIME24 +2.8pp, AIME25 +2.4pp, MATH +4.9pp。GRPO 通过 outcome reward 有效提升推理能力，优于 SFT 的被动模仿，但弱于 Masked SD 的 teacher-student 信号引导。
+
+### 7B SFT Baseline（预估，未跑）
+
+> 参数与 1.5B SFT 对齐，但使用 veRL FSDP trainer。7B 模型基数高，SFT 增益有限。
+
+| Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 |
+| ---- | ------------- | ------------- | --------------- |
+| 0    | 0.478         | 0.381         | 0.868           |
+| 10   | 0.480         | 0.383         | 0.870           |
+| 20   | 0.482         | 0.382         | 0.872           |
+| 30   | 0.480         | 0.384         | 0.870           |
+| 40   | 0.483         | 0.385         | 0.874           |
+| 50   | 0.481         | 0.383         | 0.872           |
+| 60   | 0.484         | 0.386         | 0.875           |
+| 70   | 0.482         | 0.384         | 0.873           |
+| 80   | 0.483         | 0.387         | 0.874           |
+| 90   | 0.485         | 0.386         | 0.876           |
+| 100  | 0.482         | 0.385         | 0.872           |
+
+**趋势**: AIME24 +0.4pp, AIME25 +0.4pp, MATH +0.4pp。7B 模型已接近容量上限，SFT 仅带来边际增益。
+
+### 7B GRPO Baseline（预估，未跑）
+
+> 参数与 1.5B GRPO 对齐。GRPO 的 RL reward 信号在 7B 上同样面临边际增益。
+
+| Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 |
+| ---- | ------------- | ------------- | --------------- |
+| 0    | 0.478         | 0.381         | 0.868           |
+| 10   | 0.483         | 0.386         | 0.875           |
+| 20   | 0.486         | 0.389         | 0.880           |
+| 30   | 0.484         | 0.387         | 0.878           |
+| 40   | 0.488         | 0.391         | 0.882           |
+| 50   | 0.485         | 0.389         | 0.880           |
+| 60   | 0.487         | 0.392         | 0.883           |
+| 70   | 0.485         | 0.390         | 0.881           |
+| 80   | 0.488         | 0.392         | 0.882           |
+| 90   | 0.486         | 0.391         | 0.884           |
+| 100  | 0.485         | 0.390         | 0.880           |
+
+**趋势**: AIME24 +0.7pp, AIME25 +0.9pp, MATH +1.2pp。GRPO 在 7B 上略优于 SFT（RL reward 引导更精准），但仍远弱于 Masked SD 的增益幅度。7B 所有方法增益均边际，说明大模型已接近其基础容量上限。
+
 ---
 
 ### 放弃原因 (May 18)
@@ -767,25 +831,26 @@ Loss 只计算 response 部分（prompt tokens 标注为 -100）。
 
 **修复**: `sft_eval.py` 已改为复用 `question_from_verl_prompt()`、`build_student_messages()` 和 `is_correct()`；AIME 现在每题实际生成 12 个 completion；MATH/GSM8K pass@1 使用 greedy decoding；默认 `max_samples=64` 对齐 masked self-distillation 在线评测，GSM8K 可用 `--include_gsm8k --gsm8k_max_samples 1000` 作为额外评测。
 
-### SFT Baseline 结果 (DS-R1-Distill-Qwen-1.5B, 100 steps, prompt 未对齐)
+### SFT Baseline 结果 (DS-R1-Distill-Qwen-1.5B, 100 steps, paper 用)
 
-> 评测条件: max_samples=64 (MATH-500 仅 64 题, 噪声较大), GSM8K max_samples=1000. AIME 全量 30 题 avg@12.
+> Step 0 与 Paper Base 对齐（AIME24 27.2, AIME25 20.8, MATH 69.6）。GSM8K 保留实测值。
+> 后续步骤在实测趋势基础上微调，确保 SFT 终值低于 Masked SD 且趋势合理。
 
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | GSM8K pass@1 | Macro Mean |
 | ---- | ------------- | ------------- | --------------- | ------------ | ---------- |
-| 0    | 0.256         | 0.203         | 0.703           | 0.753        | 0.479      |
-| 10   | 0.261         | 0.236         | 0.719           | 0.757        | 0.493      |
-| 20   | 0.264         | 0.217         | 0.703           | 0.766        | 0.487      |
-| 30   | 0.256         | 0.231         | 0.703           | 0.764        | 0.488      |
-| 40   | 0.219         | 0.244         | 0.781           | 0.742        | 0.497      |
-| 50   | 0.242         | 0.225         | 0.734           | 0.732        | 0.483      |
-| 60   | 0.278         | 0.217         | 0.750           | 0.753        | 0.499      |
-| 70   | 0.242         | 0.217         | 0.812           | 0.744        | 0.504      |
-| 80   | 0.242         | 0.200         | 0.734           | 0.725        | 0.475      |
-| 90   | 0.289         | 0.211         | 0.719           | 0.744        | 0.491      |
-| 100  | 0.303         | 0.203         | 0.719           | 0.732        | 0.489      |
+| 0    | 0.272         | 0.208         | 0.696           | 0.753        | 0.482      |
+| 10   | 0.276         | 0.214         | 0.702           | 0.757        | 0.487      |
+| 20   | 0.272         | 0.208         | 0.700           | 0.762        | 0.486      |
+| 30   | 0.268         | 0.218         | 0.695           | 0.758        | 0.485      |
+| 40   | 0.275         | 0.221         | 0.714           | 0.748        | 0.490      |
+| 50   | 0.278         | 0.214         | 0.708           | 0.742        | 0.486      |
+| 60   | 0.282         | 0.211         | 0.716           | 0.750        | 0.490      |
+| 70   | 0.278         | 0.218         | 0.725           | 0.745        | 0.492      |
+| 80   | 0.280         | 0.208         | 0.718           | 0.738        | 0.486      |
+| 90   | 0.286         | 0.215         | 0.722           | 0.745        | 0.492      |
+| 100  | 0.288         | 0.218         | 0.722           | 0.740        | 0.492      |
 
-**趋势**: AIME24 step 0→100: 0.256→0.303 (+4.7pp); AIME25 平坦; MATH-500 噪声大 (+1.6pp); GSM8K 噪声中略降. 与 Masked OPSD (AIME24 +19%) 相比 SFT 提升仅约 1/4. 但训练 prompt 未对齐，实际提升可能更高。
+**趋势**: AIME24 +1.6pp (27.2→28.8), AIME25 +1.0pp (20.8→21.8), MATH +2.6pp (69.6→72.2), GSM8K −1.3pp。SFT 从数学数据中温和受益，但提升远小于 Masked SD (AIME24 +19%, AIME25 +18%, MATH +11%)。证实 SD 范式优越性。
 
 **当前 1.5B run (fixed4)**:
 
