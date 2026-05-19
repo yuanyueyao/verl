@@ -703,7 +703,7 @@ Setting to zero gives \(\arccos x = \pi/4\), i.e., \(x = \sqrt{2}/2\)---the same
 Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 \end{caseblock}
 
-\begin{caseblock}{Naive self-distillation --- 100 steps}{red}
+\begin{caseblock}{Naive self-distillation: confident error without verification}{red}
 I need the range of \(f(x) = (\arccos x)^2 + (\arcsin x)^2\).
 \textcolor{orange}{Hmm,} let me think.
 
@@ -722,7 +722,7 @@ Thus range: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{\pi^2}{4} \right]}\).
 The naive-distilled model incorrectly restricts the domain of \(\arccos x\) to \([0, \pi/2]\) instead of \([0, \pi]\), then only checks two endpoints---both yielding the same value---and confidently concludes the maximum is \(\pi^2/4\). The correct maximum at \(x=-1\) (\(5\pi^2/4\)) is never examined. The single ``Hmm'' at the start does not trigger verification of the domain assumption. This pattern is consistent with the early epistemic suppression observed in naive self-distillation (Figures~4--5): the model becomes overconfident in its initial framing and skips the boundary checks that the base model performs naturally.
 \end{casenote}
 
-\begin{caseblock}{Masked self-distillation: domain preserved}{orange}
+\begin{caseblock}{Masked self-distillation: preserved verification, self-corrects}{orange}
 I need the range of \(f(x) = (\arccos x)^2 + (\arcsin x)^2\).
 \textcolor{orange}{Hmm,} let me think.
 
