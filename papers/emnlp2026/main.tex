@@ -674,7 +674,7 @@ Epistemic tokens (e.g., ``Hmm,'' ``Wait,'' ``check'') are \textcolor{orange}{hig
 \textit{Let \(f(x) = (\arccos x)^2 + (\arcsin x)^2\). Find the range of \(f(x)\). All functions are in radians.}
 \end{problemblock}
 
-\begin{caseblock}{Base model: setup and domain check}{blue}
+\begin{caseblock}{Base model: reflective reasoning with self-correction}{blue}
 Let's solve this. I remember that \(\arccos x + \arcsin x = \pi/2\) for any \(x \in [-1,1]\).
 
 Let \(\theta = \arccos x\). Then \(\arcsin x = \pi/2 - \theta\), so
@@ -684,9 +684,7 @@ Since \(\theta = \arccos x\) and \(x \in [-1,1]\), \(\theta\) ranges over \([0, 
 This is a quadratic opening upwards; the vertex at \(\theta = \pi/4\) gives the minimum.
 
 \textcolor{orange}{Wait,} let me verify the identity: at \(x=0\), \(\arccos 0 = \pi/2\), \(\arcsin 0 = 0\), sum \(\pi/2\). At \(x=1\), \(\arccos 1 = 0\), \(\arcsin 1 = \pi/2\). \textcolor{orange}{OK, correct.}
-\end{caseblock}
 
-\begin{caseblock}{Base model: computation and verification}{blue}
 Minimum at \(\theta = \pi/4\): \(f = 2(\pi^2/16) - \pi^2/4 + \pi^2/4 = \pi^2/8\).
 
 Endpoints: \(\theta = 0\) (i.e., \(x=1\)): \(f = 0 + (\pi/2)^2 = \pi^2/4\).
