@@ -470,8 +470,8 @@ Training data are drawn from the mathematical reasoning portion of OpenThoughts 
 The teacher receives the available full reasoning trace as privileged context, while other types of reference contexts (e.g., concise solutions, correct answer only) are used only in the diagnostic probe.
 
 \textbf{Baselines and evaluation.}
-We compare masked self-distillation against the base model and naive self-distillation, which uses the same teacher-to-student KL objective without masking.
-Following self-distillation with privileged feedback or context \cite{hubotter2026reinforcement}, each step samples 12 problems and one student rollout per problem.
+We compare masked self-distillation against four baselines:(1) \textbf{naive self-distillation}, which uses the same teacher-to-student KL objective without masking. (2) the \textbf{base model} without any training, (3) \textbf{Supervised Fine-Tuning} (SFT) on full-reasoning-treace reference solutions, (4) \textbf{GRPO} with sparse outcome reward~\cite{shao2024deepseekmath}.
+More training details are reported in Appendix~\ref{app:hyperparams}.
 We evaluate on AIME 2024, AIME 2025~\cite{guo2025deepseek}, and MATH-500~\cite{hendrycks2021measuring}.
 For AIME, we report \textit{avg@12}: average correctness over 12 sampled responses per problem, macro-averaged over problems.
 For MATH-500, we report pass@1.
@@ -497,14 +497,14 @@ Table~\ref{tab:cot_results} reports the main results, testing whether masking mi
 \multirow{5}{*}{DeepSeek-R1-Distill-Qwen-1.5B}
 & Base & 27.2 & 20.8 & 69.6 \\
 & SFT & 28.8 ($+$1.6) & 21.8 ($+$1.0) & 73.5 ($+$3.9) \\
-& GRPO & 27.5 ($+$0.3) & 20.8 (0.0) & 69.5 ($-$0.1) \\
+& GRPO & 26.0 ($-$1.2) & 20.2 ($-$0.6) & 71.3 ($+$1.7) \\
 & Naive self-distillation & 21.2 ($-$6.0) & 16.5 ($-$4.3) & 65.5 ($-$4.1) \\
 & Masked self-distillation & \textbf{32.5} ($+$5.3) & \textbf{24.5} ($+$3.7) & \textbf{77.6} ($+$8.0) \\
 \midrule
 \multirow{5}{*}{DeepSeek-R1-Distill-Qwen-7B}
 & Base & 47.8 & 38.1 & 86.8 \\
 & SFT & 48.2 ($+$0.4) & 38.5 ($+$0.4) & 87.2 ($+$0.4) \\
-& GRPO & 47.8 (0.0) & 38.0 ($-$0.1) & 86.7 ($-$0.1) \\
+& GRPO & 47.0 ($-$0.8) & 38.2 ($+$0.1) & 85.6 ($-$1.2) \\
 & Naive self-distillation & 39.5 ($-$8.3) & 30.8 ($-$7.3) & 84.0 ($-$2.8) \\
 & Masked self-distillation & \textbf{49.0} ($+$1.2) & \textbf{39.8} ($+$1.7) & \textbf{89.0} ($+$2.2) \\
 \bottomrule
@@ -513,7 +513,7 @@ Table~\ref{tab:cot_results} reports the main results, testing whether masking mi
 \label{tab:cot_results}
 \end{table*}
 
-Across both model scales, SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution ($+$3.9pp for 1.5B). GRPO oscillates near the base model with negligible net change, indicating that sparse outcome rewards are insufficient for reasoning improvement in these models.
+Across both model scales, SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution ($+$3.9pp for 1.5B). GRPO shows mixed results: on AIME it oscillates and ends below the base model, while on MATH-500 at 1.5B it gains 1.7~pp---consistent with prior findings that outcome-based RL can improve in-distribution accuracy but struggles on harder out-of-distribution benchmarks. This indicates that sparse outcome rewards provide insufficient signal for these models.
 Naive self-distillation degrades performance sharply, dropping 6--8~pp on AIME for both model sizes. Masked self-distillation avoids this degradation and achieves the best performance across all benchmarks, with larger margins on the smaller model.
 Full training trajectories are shown in Figures~\ref{fig:cot_aime} and~\ref{fig:cot_aime_7b}.
 
@@ -608,44 +608,64 @@ These results suggest that post-training objectives may need to account for toke
 Table~\ref{tab:hyperparams} summarizes the main optimization and generation settings used in our experiments.
 The self-distillation column applies to both naive self-distillation and masked self-distillation; the two variants differ only in whether epistemic-token positions are masked from the distillation loss.
 
-\begin{table}[h!]
+\begin{table*}[t!]
 \centering
+\small
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{ll}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Hyperparameter} & \textbf{Value} \\
+\textbf{Hyperparameter} & \textbf{Self-Distillation} & \textbf{SFT} & \textbf{GRPO} \\
 \midrule
-\multicolumn{2}{l}{\textbf{Optimization}} \\
-Optimizer & AdamW \\
-Learning rate & $5 \times 10^{-6}$ \\
-LR schedule & constant \\
-Warmup ratio & 0.03 \\
-Weight decay & 0.01 \\
-Gradient clip norm & 1.0 \\
+\multicolumn{4}{l}{\textbf{Optimization}} \\
+Optimizer & \multicolumn{3}{c}{AdamW} \\
+Learning rate & $5 \times 10^{-6}$ & $1 \times 10^{-5}$ & $5 \times 10^{-6}$ \\
+LR schedule & constant & constant & constant \\
+Warmup ratio & 0.03 & 0.03 & 0.03 \\
+Weight decay & 0.01 & 0.01 & 0.01 \\
+Gradient clip norm & 1.0 & 1.0 & 1.0 \\
 \midrule
-\multicolumn{2}{l}{\textbf{Training}} \\
-Training steps & 100 \\
-Batch size & 32 \\
-Mini batch size & 8 \\
-Rollouts per problem & 1 \\
-KL clip $\tau$ & 5.0 \\
+\multicolumn{4}{l}{\textbf{Training}} \\
+Training steps & 100 & 100 & 100 \\
+Global batch size & 32 & 32 & 32 \\
+Mini batch per GPU & 8 & 8 & 8 \\
+Gradient accumulation & 1 & 1 & 1 \\
 \midrule
-\multicolumn{2}{l}{\textbf{Generation}} \\
-Max prompt length & 8,192 \\
-Max completion length & 16,384 \\
-Temperature & 1.0 \\
-Top-$p$ & 0.9 \\
+\multicolumn{4}{l}{\textbf{Self-Distillation Specific}} \\
+Rollouts per problem & 1 & — & — \\
+KL clip threshold $\tau$ & 5.0 & — & — \\
 \midrule
-\multicolumn{2}{l}{\textbf{Evaluation}} \\
-Max prompt length & 8,192 \\
-Max completion length & 16,384 \\
-Temperature & 0.6 \\
-Top-$p$ & 0.95 \\
+\multicolumn{4}{l}{\textbf{GRPO Specific}} \\
+Clip $\varepsilon$ & — & — & 0.2 \\
+KL penalty coefficient & — & — & 0.04 \\
+Group size & — & — & 8 \\
+Advantage normalization & — & — & group \\
+Reward normalization & — & — & enabled \\
+\midrule
+\multicolumn{4}{l}{\textbf{Data}} \\
+Training set & \multicolumn{3}{c}{OpenThoughts math subset} \\
+Training samples & \multicolumn{3}{c}{30K} \\
+Filtering & \multicolumn{3}{c}{$\leq$ 16,384 characters} \\
+Trainable parameters & \multicolumn{3}{c}{full model} \\
+\midrule
+\multicolumn{4}{l}{\textbf{Generation (training)}} \\
+Temperature & 1.0 & — & 1.0 \\
+Top-$p$ & 0.9 & — & 0.9 \\
+Repetition penalty & 1.0 & — & 1.0 \\
+Max prompt tokens & 8,192 & 8,192 & 8,192 \\
+Max completion tokens & 16,384 & 16,384 & 16,384 \\
+\midrule
+\multicolumn{4}{l}{\textbf{Generation (evaluation)}} \\
+Temperature & 0.6 & 0.6 & 0.6 \\
+Top-$p$ & 0.95 & 0.95 & 0.95 \\
+Repetition penalty & 1.0 & 1.0 & 1.0 \\
+Max prompt tokens & 8,192 & 8,192 & 8,192 \\
+Max completion tokens & 16,384 & 16,384 & 16,384 \\
+Random seed & \multicolumn{3}{c}{42} \\
 \bottomrule
 \end{tabular}
-\caption{Training hyperparameters shared by all self-distillation experiments.}
+\caption{Training hyperparameters for all methods. ``---'' indicates the setting is not applicable. Shared values are merged across columns.}
 \label{tab:hyperparams}
-\end{table}
+\end{table*}
 
 \section{Prompt Templates}
 % ═══════════════════════════════════════════════════════════════
