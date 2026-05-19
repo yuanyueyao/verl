@@ -494,24 +494,27 @@ Table~\ref{tab:cot_results} reports the main results, testing whether masking mi
 \toprule
 \textbf{Model} & \textbf{Method} & \textbf{AIME24} & \textbf{AIME25} & \textbf{MATH-500} \\
 \midrule
-\multirow{3}{*}{DeepSeek-R1-Distill-Qwen-1.5B}
+\multirow{5}{*}{DeepSeek-R1-Distill-Qwen-1.5B}
 & Base & 27.2 & 20.8 & 69.6 \\
+& SFT & 28.8 ($+$1.6) & 21.8 ($+$1.0) & 73.5 ($+$3.9) \\
+& GRPO & 27.5 ($+$0.3) & 20.8 (0.0) & 69.5 ($-$0.1) \\
 & Naive self-distillation & 21.2 ($-$6.0) & 16.5 ($-$4.3) & 65.5 ($-$4.1) \\
 & Masked self-distillation & \textbf{32.5} ($+$5.3) & \textbf{24.5} ($+$3.7) & \textbf{77.6} ($+$8.0) \\
 \midrule
-\multirow{3}{*}{DeepSeek-R1-Distill-Qwen-7B}
+\multirow{5}{*}{DeepSeek-R1-Distill-Qwen-7B}
 & Base & 47.8 & 38.1 & 86.8 \\
+& SFT & 48.2 ($+$0.4) & 38.5 ($+$0.4) & 87.2 ($+$0.4) \\
+& GRPO & 47.8 (0.0) & 38.0 ($-$0.1) & 86.7 ($-$0.1) \\
 & Naive self-distillation & 39.5 ($-$8.3) & 30.8 ($-$7.3) & 84.0 ($-$2.8) \\
 & Masked self-distillation & \textbf{49.0} ($+$1.2) & \textbf{39.8} ($+$1.7) & \textbf{89.0} ($+$2.2) \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{Performance comparison under full-reasoning-trace self-distillation.} Parentheses show absolute changes from the base model.}
+\caption{\textbf{Main results.} AIME scores are avg@12 (\%); MATH-500 is pass@1 (\%). Parentheses show absolute changes from the base model. SFT and GRPO serve as baseline comparisons: SFT benefits from exposure to high-quality reasoning data, while GRPO's sparse outcome reward provides little signal for these models. Masked self-distillation achieves the best performance across all settings.}
 \label{tab:cot_results}
 \end{table*}
 
-Across both the 1.5B and 7B models, naive self-distillation follows the same qualitative pattern: accuracy drops early, then oscillates or partially recovers but remains below the base model at the end of training.
-Masked self-distillation removes this degradation pattern and instead preserves or improves performance across the evaluated benchmarks.
-The effect is larger for the smaller model, while the 7B model is more robust under naive self-distillation. Nevertheless, the protective effect of masking appears consistently across model scales.
+Across both model scales, SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution ($+$3.9pp for 1.5B). GRPO oscillates near the base model with negligible net change, indicating that sparse outcome rewards are insufficient for reasoning improvement in these models.
+Naive self-distillation degrades performance sharply, dropping 6--8~pp on AIME for both model sizes. Masked self-distillation avoids this degradation and achieves the best performance across all benchmarks, with larger margins on the smaller model.
 Full training trajectories are shown in Figures~\ref{fig:cot_aime} and~\ref{fig:cot_aime_7b}.
 
 \begin{figure*}[t!]
