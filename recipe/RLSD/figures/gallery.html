@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper Figures Gallery — EMNLP 2026</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         max-width: 900px; margin: 40px auto; padding: 0 20px;
+         background: #fafafa; color: #222; }
+  h1 { font-size: 1.4em; border-bottom: 2px solid #1F77B4; padding-bottom: 8px; }
+  h2 { font-size: 1.1em; color: #444; margin-top: 30px; }
+  .fig { background: white; border: 1px solid #ddd; border-radius: 6px;
+         padding: 16px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .fig h3 { margin: 0 0 8px; font-size: 1em; color: #1F77B4; }
+  .fig .meta { font-size: 0.8em; color: #888; margin-bottom: 10px; }
+  .fig img { max-width: 100%; border: 1px solid #eee; border-radius: 3px; }
+  .fig a { color: #D62728; font-size: 0.85em; }
+  .cols { display: flex; gap: 16px; flex-wrap: wrap; }
+  .cols .fig { flex: 1; min-width: 280px; }
+</style>
+</head>
+<body>
+
+<h1>EMNLP 2026 — Paper Figures Gallery</h1>
+<p style="color:#666;">
+  Preserving Epistemic Uncertainty: Token-Level Masking Prevents Self-Distillation Degradation in Mathematical Reasoning
+</p>
+
+<h2>1. Main Result: AIME Training Curves (1.5B)</h2>
+<div class="fig">
+  <h3>Figure 1 (fig:cot_aime) — AIME Accuracy Over Training Steps</h3>
+  <div class="meta">COT Self-Distillation, DeepSeek-R1-Distill-Qwen-1.5B, 100 steps</div>
+  <img src="preview_aime_curves_15b.png" alt="AIME curves 1.5B">
+  <br><a href="fig_aime_curves_15b.pdf">📄 PDF (vector)</a>
+</div>
+
+<div class="fig">
+  <h3>Figure S1 — AIME Accuracy Over Training Steps (7B)</h3>
+  <div class="meta">COT Self-Distillation, DeepSeek-R1-Distill-Qwen-7B, 100 steps</div>
+  <img src="preview_aime_curves_15b.png" alt="AIME curves 7B" style="opacity:0.5">
+  <br><a href="fig_aime_curves_7b.pdf">📄 PDF (vector)</a>
+  <br><span style="font-size:0.8em;color:#999;">(7B PNG preview not shown — see PDF)</span>
+</div>
+
+<h2>2. Full Dynamics: 4-Panel Combined View (1.5B)</h2>
+<div class="fig">
+  <h3>Figure 2 — AIME24 | AIME25 | Epistemic Tokens | Response Length</h3>
+  <img src="preview_combined_4panel_15b.png" alt="Combined 4-panel">
+  <br><a href="fig_combined_4panel_15b.pdf">📄 PDF (vector)</a>
+  <br><a href="fig_epi_len_dynamics_15b.pdf">📄 Epi+Len only (1.5B)</a>
+  &nbsp;|&nbsp;
+  <a href="fig_epi_len_dynamics_7b.pdf">📄 Epi+Len only (7B)</a>
+</div>
+
+<h2>3. Diagnostic: Reference Context Probe</h2>
+<div class="fig">
+  <h3>Figure 3 — Epistemic Token Frequency Across Prompt Conditions</h3>
+  <div class="meta">30 problems × 3 samples, DeepSeek-R1-Distill-Qwen-1.5B</div>
+  <img src="preview_ref_context_probe.png" alt="Reference context probe">
+  <br><a href="fig_ref_context_probe.pdf">📄 PDF (vector)</a>
+</div>
+
+<h2>4. Diagnostic: Token-Level Probability Probe</h2>
+<div class="fig">
+  <h3>Figure 4 — Teacher vs. Student Next-Token Probability</h3>
+  <img src="preview_prob_probe.png" alt="Probability probe">
+  <br><a href="fig_prob_probe.pdf">📄 PDF (vector)</a>
+</div>
+
+<h2>5. Summary: Delta Comparison</h2>
+<div class="fig">
+  <h3>Figure 5 — Metric Changes (Step 0 → 100), Naive vs. Masked OPSD</h3>
+  <img src="preview_summary_delta_15b.png" alt="Summary delta">
+  <br><a href="fig_summary_delta_15b.pdf">📄 PDF (1.5B)</a>
+  &nbsp;|&nbsp;
+  <a href="fig_summary_delta_7b.pdf">📄 PDF (7B)</a>
+</div>
+
+<h2>All PDF Files</h2>
+<ul style="font-size:0.85em;">
+  <li><a href="fig_aime_curves_15b.pdf">fig_aime_curves_15b.pdf</a> — AIME curves, 1.5B</li>
+  <li><a href="fig_aime_curves_7b.pdf">fig_aime_curves_7b.pdf</a> — AIME curves, 7B</li>
+  <li><a href="fig_combined_4panel_15b.pdf">fig_combined_4panel_15b.pdf</a> — 4-panel combined, 1.5B</li>
+  <li><a href="fig_epi_len_dynamics_15b.pdf">fig_epi_len_dynamics_15b.pdf</a> — Epi+Len dynamics, 1.5B</li>
+  <li><a href="fig_epi_len_dynamics_7b.pdf">fig_epi_len_dynamics_7b.pdf</a> — Epi+Len dynamics, 7B</li>
+  <li><a href="fig_ref_context_probe.pdf">fig_ref_context_probe.pdf</a> — Reference context probe</li>
+  <li><a href="fig_prob_probe.pdf">fig_prob_probe.pdf</a> — Probability probe</li>
+  <li><a href="fig_summary_delta_15b.pdf">fig_summary_delta_15b.pdf</a> — Summary delta, 1.5B</li>
+  <li><a href="fig_summary_delta_7b.pdf">fig_summary_delta_7b.pdf</a> — Summary delta, 7B</li>
+</ul>
+
+<p style="color:#999; font-size:0.8em; margin-top:40px;">
+  Generated: 2026-05-16 &nbsp;|&nbsp;
+  Script: <code>recipe/RLSD/figures/generate_figures.py</code>
+</p>
+
+</body>
+</html>
