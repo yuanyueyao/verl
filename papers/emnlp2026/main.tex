@@ -667,7 +667,7 @@ Teacher and student share the same parameters but differ in conditioning: the te
 \section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
 
-Below we contrast responses from the base model (DeepSeek-R1-Distill-Qwen-1.5B, step~0), the naive self-distilled model, and the masked self-distilled model (each after 100 self-distillation steps) on a representative MATH problem. Outputs are lightly condensed for presentation; the full reasoning traces exhibit the same patterns at greater length.
+We compare outputs from three training conditions based on DeepSeek-R1-Distill-Qwen-1.5B: the pretrained model (step~0), naive self-distillation (100 steps), and masked self-distillation (100 steps). Outputs are lightly condensed for presentation; full traces exhibit the same behaviors at greater length.
 Epistemic tokens (e.g., ``Hmm,'' ``Wait,'' ``check'') are \textcolor{orange}{highlighted in orange}; errors in \textcolor{red}{red}.
 
 \begin{problemblock}{Problem (MATH-500)}
