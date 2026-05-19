@@ -3,11 +3,14 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\citation{snell2022learning,agarwal2024onpolicy,zhao2026self,hubotter2026reinforcement}
-\citation{zhao2026self}
+\citation{hubotter2026reinforcement,zhang2026opsdl,jin2026unisd,zhang2026simple}
 \citation{hubotter2026reinforcement}
-\citation{zhao2026self}
-\citation{hubotter2026reinforcement}
+\citation{guo2025deepseek,yu2025dapo,shao2024deepseekmath}
+\citation{ouyang2022training,wei2022flan,chung2024scaling}
+\citation{zhang2026simple}
+\citation{zhang2026opsdl}
+\citation{jin2026unisd}
+\citation{hendrycks2021measuring,cobbe2021training,patel2021svamp,saxton2019analysing}
 \def\@LN@column{1}
 \@LN{0}{0}
 \@LN{1}{0}
@@ -39,8 +42,8 @@
 \@LN{27}{0}
 \@LN{28}{0}
 \@LN{29}{0}
-\@LN{30}{0}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\@LN{30}{0}
 \@LN{31}{0}
 \@LN{32}{0}
 \@LN{33}{0}
@@ -53,6 +56,9 @@
 \@LN{40}{0}
 \@LN{41}{0}
 \def\@LN@column{2}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Failure mode of naive self-distillation. Distillation signal suppresses epistemic tokens, pushing the student model toward overconfident, less reflective reasoning.}}{1}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:teaser}{{1}{1}{Failure mode of naive self-distillation. Distillation signal suppresses epistemic tokens, pushing the student model toward overconfident, less reflective reasoning}{figure.caption.1}{}}
 \@LN{42}{0}
 \@LN{43}{0}
 \@LN{44}{0}
@@ -79,26 +85,36 @@
 \@LN{65}{0}
 \@LN{66}{0}
 \@LN{67}{0}
-\@LN{68}{0}
-\@LN{69}{0}
-\@LN{70}{0}
-\@LN{71}{0}
-\@LN{72}{0}
-\@LN{73}{0}
-\@LN{74}{0}
-\@LN{75}{0}
-\@LN{76}{0}
-\@LN{77}{0}
-\@LN{78}{0}
-\@LN{79}{0}
-\@LN{80}{0}
-\@LN{81}{0}
-\@LN{82}{0}
 \citation{snell2022learning}
-\citation{zhao2026self}
+\citation{agarwal2024onpolicy}
 \citation{hubotter2026reinforcement}
+\citation{jin2026unisd}
+\citation{zhang2026opsdl}
+\citation{zhang2026simple}
+\citation{ye2026onpolicy}
+\citation{shenfeld2026self}
+\citation{liu2026exploratory}
+\citation{song2026expanding}
+\citation{penaloza2026privileged}
 \citation{shrivastava2025sample,sang2026onpolicy,deng2026conpress,yang2026accordion,luo2026compress}
+\citation{wei2022chain,kojima2022large}
+\citation{wang2023selfconsistency,zhou2023leasttomost,yao2023tree}
 \def\@LN@column{1}
+\@LN{68}{1}
+\@LN{69}{1}
+\@LN{70}{1}
+\@LN{71}{1}
+\@LN{72}{1}
+\@LN{73}{1}
+\@LN{74}{1}
+\@LN{75}{1}
+\@LN{76}{1}
+\@LN{77}{1}
+\@LN{78}{1}
+\@LN{79}{1}
+\@LN{80}{1}
+\@LN{81}{1}
+\@LN{82}{1}
 \@LN{83}{1}
 \@LN{84}{1}
 \@LN{85}{1}
@@ -130,28 +146,30 @@
 \@LN{111}{1}
 \@LN{112}{1}
 \@LN{113}{1}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Background and Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:background}{{2}{2}{Background and Related Work}{section.2}{}}
 \@LN{114}{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Self-Distillation for LLM Post-Training}{2}{subsection.2.1}\protected@file@percent }
 \@LN{115}{1}
 \@LN{116}{1}
 \@LN{117}{1}
+\def\@LN@column{2}
 \@LN{118}{1}
 \@LN{119}{1}
 \@LN{120}{1}
 \@LN{121}{1}
 \@LN{122}{1}
 \@LN{123}{1}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Background and Related Work}{2}{section.2}\protected@file@percent }
 \@LN{124}{1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Self-Distillation for LLM Post-Training}{2}{subsection.2.1}\protected@file@percent }
 \@LN{125}{1}
 \@LN{126}{1}
+\newlabel{eq:sd_loss}{{1}{2}{Self-Distillation for LLM Post-Training}{equation.1}{}}
 \@LN{127}{1}
 \@LN{128}{1}
 \@LN{129}{1}
 \@LN{130}{1}
 \@LN{131}{1}
 \@LN{132}{1}
-\def\@LN@column{2}
 \@LN{133}{1}
 \@LN{134}{1}
 \@LN{135}{1}
@@ -163,7 +181,6 @@
 \@LN{141}{1}
 \@LN{142}{1}
 \@LN{143}{1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Epistemic Verbalization and Reasoning}{2}{subsection.2.2}\protected@file@percent }
 \@LN{144}{1}
 \@LN{145}{1}
 \@LN{146}{1}
@@ -175,473 +192,748 @@
 \@LN{152}{1}
 \@LN{153}{1}
 \@LN{154}{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Epistemic Tokens and Related Directions}{2}{subsection.2.2}\protected@file@percent }
 \@LN{155}{1}
 \@LN{156}{1}
 \@LN{157}{1}
 \@LN{158}{1}
 \@LN{159}{1}
 \@LN{160}{1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Reasoning Compression}{2}{subsection.2.3}\protected@file@percent }
 \@LN{161}{1}
 \@LN{162}{1}
 \@LN{163}{1}
 \@LN{164}{1}
 \@LN{165}{1}
-\@LN{166}{1}
-\@LN{167}{1}
-\@LN{168}{1}
-\@LN{169}{1}
-\@LN{170}{1}
-\@LN{171}{1}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Diagnosis: Why Self-Distillation Degrades Reasoning}{2}{section.3}\protected@file@percent }
-\@LN{172}{1}
-\@LN{173}{1}
-\@LN{174}{1}
-\@LN{175}{1}
-\@LN{176}{1}
-\@LN{177}{1}
-\citation{hubotter2026reinforcement}
-\citation{hubotter2026reinforcement}
+\citation{lin2022teaching,kadavath2022language,tian2023fine}
+\citation{madaan2023self,huang2023large}
+\citation{lightman2023lets,uesato2022solving,cobbe2021training}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Overview of epistemic token masking.} Using a simple math problem as a running example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom). \textbf  {Yellow-highlighted tokens} (``Hmm,'' ``Wait,'' ``check'') denote epistemic tokens---uncertainty expressions and self-verification signals. \textbf  {Top:} Naive self-distillation applies dense per-token KL at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic alternatives alongside genuine error corrections; post-distillation, the student loses self-correction and retains the initial mistake. \textbf  {Bottom:} Our masked loss protects epistemic positions from this pressure (while still penalizing genuine errors); post-distillation, the student retains epistemic tokens and arrives at the correct answer. Training curves on the right summarize the accuracy and output length trends for each method.}}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:overview}{{2}{3}{\textbf {Overview of epistemic token masking.} Using a simple math problem as a running example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom). \textbf {Yellow-highlighted tokens} (``Hmm,'' ``Wait,'' ``check'') denote epistemic tokens---uncertainty expressions and self-verification signals. \textbf {Top:} Naive self-distillation applies dense per-token KL at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic alternatives alongside genuine error corrections; post-distillation, the student loses self-correction and retains the initial mistake. \textbf {Bottom:} Our masked loss protects epistemic positions from this pressure (while still penalizing genuine errors); post-distillation, the student retains epistemic tokens and arrives at the correct answer. Training curves on the right summarize the accuracy and output length trends for each method}{figure.caption.2}{}}
 \def\@LN@column{1}
+\@LN{166}{2}
+\@LN{167}{2}
+\@LN{168}{2}
+\@LN{169}{2}
+\@LN{170}{2}
+\@LN{171}{2}
+\@LN{172}{2}
+\@LN{173}{2}
+\@LN{174}{2}
+\@LN{175}{2}
+\@LN{176}{2}
+\@LN{177}{2}
 \@LN{178}{2}
 \@LN{179}{2}
 \@LN{180}{2}
+\def\@LN@column{2}
 \@LN{181}{2}
 \@LN{182}{2}
 \@LN{183}{2}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Domain Contrast: Code Succeeds, Math Fails}{3}{subsection.3.1}\protected@file@percent }
 \@LN{184}{2}
 \@LN{185}{2}
 \@LN{186}{2}
 \@LN{187}{2}
 \@LN{188}{2}
 \@LN{189}{2}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Diagnosis: Why Self-Distillation Degrades Reasoning}{3}{section.3}\protected@file@percent }
+\newlabel{sec:diagnosis}{{3}{3}{Diagnosis: Why Self-Distillation Degrades Reasoning}{section.3}{}}
 \@LN{190}{2}
 \@LN{191}{2}
 \@LN{192}{2}
 \@LN{193}{2}
 \@LN{194}{2}
-\@LN{195}{2}
-\@LN{196}{2}
-\@LN{197}{2}
-\@LN{198}{2}
-\@LN{199}{2}
-\@LN{200}{2}
-\@LN{201}{2}
-\@LN{202}{2}
-\@LN{203}{2}
-\@LN{204}{2}
-\@LN{205}{2}
-\@LN{206}{2}
-\@LN{207}{2}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Token-Level Probability Probe}{3}{subsection.3.2}\protected@file@percent }
-\@LN{208}{2}
-\@LN{209}{2}
-\@LN{210}{2}
-\@LN{211}{2}
-\@LN{212}{2}
-\@LN{213}{2}
-\@LN{214}{2}
-\@LN{215}{2}
-\@LN{216}{2}
-\@LN{217}{2}
-\@LN{218}{2}
-\@LN{219}{2}
-\@LN{220}{2}
-\@LN{221}{2}
-\@LN{222}{2}
-\@LN{223}{2}
-\@LN{224}{2}
-\@LN{225}{2}
-\@LN{226}{2}
-\def\@LN@column{2}
-\@LN{227}{2}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Top-10 Token Analysis}{3}{subsection.3.3}\protected@file@percent }
-\@LN{228}{2}
-\@LN{229}{2}
-\@LN{230}{2}
-\@LN{231}{2}
-\@LN{232}{2}
-\@LN{233}{2}
-\@LN{234}{2}
-\@LN{235}{2}
-\@LN{236}{2}
-\@LN{237}{2}
-\@LN{238}{2}
-\@LN{239}{2}
-\@LN{240}{2}
-\@LN{241}{2}
-\@LN{242}{2}
-\@LN{243}{2}
-\@LN{244}{2}
-\@LN{245}{2}
-\@LN{246}{2}
-\@LN{247}{2}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Reference Context Matters}{3}{subsection.3.4}\protected@file@percent }
-\@LN{248}{2}
-\@LN{249}{2}
-\@LN{250}{2}
-\@LN{251}{2}
-\@LN{252}{2}
-\@LN{253}{2}
-\@LN{254}{2}
-\@LN{255}{2}
-\@LN{256}{2}
-\@LN{257}{2}
-\@LN{258}{2}
-\@LN{259}{2}
-\@LN{260}{2}
-\@LN{261}{2}
-\@LN{262}{2}
-\@LN{263}{2}
-\@LN{264}{2}
-\@LN{265}{2}
-\@LN{266}{2}
-\@LN{267}{2}
-\@LN{268}{2}
-\@LN{269}{2}
-\@LN{270}{2}
-\@LN{271}{2}
-\@LN{272}{2}
-\@LN{273}{2}
-\@LN{274}{2}
-\@LN{275}{2}
-\@LN{276}{2}
-\citation{guha2025openthoughts}
-\citation{zhao2026self}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Self-distillation performance across domains. Code and science tasks benefit; mathematical reasoning degrades.}}{4}{table.caption.1}\protected@file@percent }
-\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:domain_contrast}{{1}{4}{Self-distillation performance across domains. Code and science tasks benefit; mathematical reasoning degrades}{table.caption.1}{}}
+\citation{hubotter2026reinforcement,zhang2026opsdl,jin2026unisd,zhang2026simple}
+\citation{guo2025deepseek}
 \def\@LN@column{1}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mean next-token probability for epistemic vs.\ non-epistemic tokens. The teacher assigns only 45\% as much probability to epistemic tokens.}}{4}{table.caption.2}\protected@file@percent }
-\newlabel{tab:prob_probe}{{2}{4}{Mean next-token probability for epistemic vs.\ non-epistemic tokens. The teacher assigns only 45\% as much probability to epistemic tokens}{table.caption.2}{}}
-\@LN{277}{3}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Method: Epistemic Token Masking}{4}{section.4}\protected@file@percent }
-\@LN{278}{3}
-\@LN{279}{3}
-\@LN{280}{3}
-\@LN{281}{3}
-\@LN{282}{3}
-\@LN{283}{3}
-\@LN{284}{3}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Epistemic Token Set}{4}{subsection.4.1}\protected@file@percent }
-\@LN{285}{3}
-\@LN{286}{3}
-\@LN{287}{3}
-\@LN{288}{3}
-\@LN{289}{3}
-\@LN{290}{3}
-\@LN{291}{3}
-\@LN{292}{3}
-\@LN{293}{3}
-\@LN{294}{3}
-\@LN{295}{3}
-\@LN{296}{3}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Masked Self-Distillation Loss}{4}{subsection.4.2}\protected@file@percent }
-\@LN{297}{3}
-\@LN{298}{3}
-\@LN{299}{3}
-\@LN{300}{3}
-\@LN{301}{3}
+\@LN{195}{3}
+\@LN{196}{3}
+\@LN{197}{3}
+\@LN{198}{3}
+\@LN{199}{3}
+\@LN{200}{3}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Domain Contrast: Success and Failure of Self-Distillation}{4}{subsection.3.1}\protected@file@percent }
+\@LN{201}{3}
+\@LN{202}{3}
+\@LN{203}{3}
+\@LN{204}{3}
+\@LN{205}{3}
+\@LN{206}{3}
+\@LN{207}{3}
+\@LN{208}{3}
+\@LN{209}{3}
+\@LN{210}{3}
+\@LN{211}{3}
+\@LN{212}{3}
+\@LN{213}{3}
+\@LN{214}{3}
+\@LN{215}{3}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Token-Level Signal Concentration}{4}{subsection.3.2}\protected@file@percent }
+\@LN{216}{3}
+\@LN{217}{3}
+\@LN{218}{3}
+\@LN{219}{3}
+\@LN{220}{3}
+\@LN{221}{3}
+\@LN{222}{3}
+\@LN{223}{3}
+\@LN{224}{3}
+\@LN{225}{3}
+\@LN{226}{3}
+\@LN{227}{3}
+\@LN{228}{3}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Mean next-token probability assigned to sampled student-generated tokens, grouped by token type.}}{4}{table.caption.3}\protected@file@percent }
+\newlabel{tab:prob_probe}{{1}{4}{Mean next-token probability assigned to sampled student-generated tokens, grouped by token type}{table.caption.3}{}}
+\@LN{229}{3}
+\@LN{230}{3}
+\@LN{231}{3}
+\@LN{232}{3}
+\@LN{233}{3}
+\@LN{234}{3}
+\@LN{235}{3}
+\@LN{236}{3}
 \def\@LN@column{2}
-\@LN{302}{3}
-\newlabel{eq:masked_loss}{{4}{4}{Masked Self-Distillation Loss}{equation.4}{}}
-\@LN{303}{3}
-\@LN{304}{3}
-\@LN{305}{3}
-\@LN{306}{3}
-\@LN{307}{3}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Implementation}{4}{subsection.4.3}\protected@file@percent }
-\@LN{308}{3}
-\@LN{309}{3}
-\@LN{310}{3}
-\@LN{311}{3}
-\@LN{312}{3}
-\@LN{313}{3}
-\@LN{314}{3}
-\@LN{315}{3}
-\@LN{316}{3}
-\@LN{317}{3}
-\@LN{318}{3}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{4}{section.5}\protected@file@percent }
-\@LN{319}{3}
-\@LN{320}{3}
-\@LN{321}{3}
-\@LN{322}{3}
-\@LN{323}{3}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Setup}{4}{subsection.5.1}\protected@file@percent }
-\@LN{324}{3}
-\@LN{325}{3}
-\@LN{326}{3}
-\@LN{327}{3}
-\@LN{328}{3}
-\@LN{329}{3}
-\@LN{330}{3}
-\@LN{331}{3}
-\@LN{332}{3}
-\@LN{333}{3}
-\@LN{334}{3}
-\@LN{335}{3}
-\@LN{336}{3}
-\@LN{337}{3}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Top-3 token predictions by teacher and student at selected epistemic positions.}}{5}{table.caption.3}\protected@file@percent }
-\newlabel{tab:top10}{{3}{5}{Top-3 token predictions by teacher and student at selected epistemic positions}{table.caption.3}{}}
+\@LN{237}{3}
+\@LN{238}{3}
+\@LN{239}{3}
+\@LN{240}{3}
+\@LN{241}{3}
+\@LN{242}{3}
+\@LN{243}{3}
+\@LN{244}{3}
+\@LN{245}{3}
+\@LN{246}{3}
+\@LN{247}{3}
+\@LN{248}{3}
+\@LN{249}{3}
+\@LN{250}{3}
+\@LN{251}{3}
+\@LN{252}{3}
+\@LN{253}{3}
+\@LN{254}{3}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Token-level self-distillation signal heatmap on representative student response.} Color encodes the token-level self-distillation signal; outlined boxes mark epistemic tokens and error/correction positions.}}{4}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:token_kl_strip}{{3}{4}{\textbf {Token-level self-distillation signal heatmap on representative student response.} Color encodes the token-level self-distillation signal; outlined boxes mark epistemic tokens and error/correction positions}{figure.caption.4}{}}
+\@LN{255}{3}
+\@LN{256}{3}
+\@LN{257}{3}
+\@LN{258}{3}
+\@LN{259}{3}
+\@LN{260}{3}
+\@LN{261}{3}
+\@LN{262}{3}
+\@LN{263}{3}
+\@LN{264}{3}
+\@LN{265}{3}
+\@LN{266}{3}
+\@LN{267}{3}
+\@LN{268}{3}
+\@LN{269}{3}
+\@LN{270}{3}
+\@LN{271}{3}
+\@LN{272}{3}
 \def\@LN@column{1}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Epistemic token frequency and answer accuracy across prompt conditions (30 problems $\times $ 3 samples). Richer reference context suppresses epistemic tokens but inflates accuracy, masking reasoning degradation.}}{5}{table.caption.4}\protected@file@percent }
-\newlabel{tab:ref_context}{{4}{5}{Epistemic token frequency and answer accuracy across prompt conditions (30 problems $\times $ 3 samples). Richer reference context suppresses epistemic tokens but inflates accuracy, masking reasoning degradation}{table.caption.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces  Left: percentage of response positions. Right: percentage of aggregate token-level self-distillation signal.}}{5}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:kl_concentration}{{4}{5}{Left: percentage of response positions. Right: percentage of aggregate token-level self-distillation signal}{figure.caption.5}{}}
+\@LN{273}{4}
+\@LN{274}{4}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Reference Context Matters}{5}{subsection.3.3}\protected@file@percent }
+\@LN{275}{4}
+\@LN{276}{4}
+\@LN{277}{4}
+\@LN{278}{4}
+\@LN{279}{4}
+\@LN{280}{4}
+\@LN{281}{4}
+\@LN{282}{4}
+\@LN{283}{4}
+\@LN{284}{4}
+\@LN{285}{4}
+\@LN{286}{4}
+\@LN{287}{4}
+\@LN{288}{4}
+\@LN{289}{4}
+\@LN{290}{4}
+\@LN{291}{4}
+\@LN{292}{4}
+\@LN{293}{4}
+\@LN{294}{4}
+\@LN{295}{4}
+\@LN{296}{4}
+\@LN{297}{4}
+\@LN{298}{4}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Method: Epistemic Token Masking}{5}{section.4}\protected@file@percent }
+\@LN{299}{4}
+\@LN{300}{4}
+\@LN{301}{4}
+\@LN{302}{4}
+\@LN{303}{4}
+\@LN{304}{4}
+\def\@LN@column{2}
+\@LN{305}{4}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Epistemic Token Set}{5}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:epistemic_token_set}{{4.1}{5}{Epistemic Token Set}{subsection.4.1}{}}
+\@LN{306}{4}
+\@LN{307}{4}
+\@LN{308}{4}
+\@LN{309}{4}
+\@LN{310}{4}
+\@LN{311}{4}
+\@LN{312}{4}
+\@LN{313}{4}
+\@LN{314}{4}
+\@LN{315}{4}
+\@LN{316}{4}
+\@LN{317}{4}
+\@LN{318}{4}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Masked Self-Distillation Loss}{5}{subsection.4.2}\protected@file@percent }
+\@LN{319}{4}
+\@LN{320}{4}
+\@LN{321}{4}
+\@LN{322}{4}
+\@LN{323}{4}
+\@LN{324}{4}
+\@LN{325}{4}
+\@LN{326}{4}
+\@LN{327}{4}
+\@LN{328}{4}
+\@LN{329}{4}
+\@LN{330}{4}
+\@LN{331}{4}
+\newlabel{eq:clipped_kl}{{4}{5}{Masked Self-Distillation Loss}{equation.4}{}}
+\@LN{332}{4}
+\@LN{333}{4}
+\@LN{334}{4}
+\@LN{335}{4}
+\@LN{336}{4}
+\@LN{337}{4}
 \@LN{338}{4}
+\newlabel{eq:masked_loss}{{5}{5}{Masked Self-Distillation Loss}{equation.5}{}}
 \@LN{339}{4}
 \@LN{340}{4}
 \@LN{341}{4}
 \@LN{342}{4}
 \@LN{343}{4}
 \@LN{344}{4}
-\@LN{345}{4}
-\@LN{346}{4}
-\@LN{347}{4}
-\@LN{348}{4}
-\@LN{349}{4}
-\@LN{350}{4}
-\@LN{351}{4}
-\@LN{352}{4}
-\@LN{353}{4}
-\@LN{354}{4}
-\@LN{355}{4}
-\@LN{356}{4}
-\@LN{357}{4}
-\@LN{358}{4}
-\@LN{359}{4}
-\@LN{360}{4}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}COT Reference Solution Experiments (1.5B)}{5}{subsection.5.2}\protected@file@percent }
-\@LN{361}{4}
-\@LN{362}{4}
-\@LN{363}{4}
-\@LN{364}{4}
-\@LN{365}{4}
-\@LN{366}{4}
-\@LN{367}{4}
-\def\@LN@column{2}
-\@LN{368}{4}
-\@LN{369}{4}
-\@LN{370}{4}
-\@LN{371}{4}
-\@LN{372}{4}
-\@LN{373}{4}
-\@LN{374}{4}
-\@LN{375}{4}
-\@LN{376}{4}
-\@LN{377}{4}
-\@LN{378}{4}
-\@LN{379}{4}
-\@LN{380}{4}
-\@LN{381}{4}
-\@LN{382}{4}
-\@LN{383}{4}
-\@LN{384}{4}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Clean Reference Solution Experiments (7B)}{5}{subsection.5.3}\protected@file@percent }
-\@LN{385}{4}
-\@LN{386}{4}
-\@LN{387}{4}
-\@LN{388}{4}
-\@LN{389}{4}
-\@LN{390}{4}
-\@LN{391}{4}
-\@LN{392}{4}
-\@LN{393}{4}
-\@LN{394}{4}
-\@LN{395}{4}
-\@LN{396}{4}
-\@LN{397}{4}
-\@LN{398}{4}
-\@LN{399}{4}
-\@LN{400}{4}
-\@LN{401}{4}
-\@LN{402}{4}
-\@LN{403}{4}
-\@LN{404}{4}
-\@LN{405}{4}
-\@LN{406}{4}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Analysis}{5}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Epistemic token retention.}{5}{section*.6}\protected@file@percent }
-\@LN{407}{4}
-\@LN{408}{4}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces COT reference solution experiments (DeepSeek-R1-Distill-Qwen-1.5B, 100 steps). Naive OPSD degrades AIME24 by 20.2\%; masked OPSD reduces degradation to 8.1\% and completely preserves AIME25.}}{6}{table.caption.5}\protected@file@percent }
-\newlabel{tab:cot_results}{{5}{6}{COT reference solution experiments (DeepSeek-R1-Distill-Qwen-1.5B, 100 steps). Naive OPSD degrades AIME24 by 20.2\%; masked OPSD reduces degradation to 8.1\% and completely preserves AIME25}{table.caption.5}{}}
+\citation{guo2025deepseek}
+\citation{guha2025openthoughts}
+\citation{hubotter2026reinforcement}
+\citation{guo2025deepseek}
+\citation{hendrycks2021measuring}
+\citation{mathverify2024}
+\citation{sheng2024hybridflow}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Response statistics under four reference conditions. Epi. \% denotes the percentage of response positions matched by epistemic tokens.}}{6}{table.caption.6}\protected@file@percent }
+\newlabel{tab:ref_context}{{2}{6}{Response statistics under four reference conditions. Epi. \% denotes the percentage of response positions matched by epistemic tokens}{table.caption.6}{}}
 \def\@LN@column{1}
-\@LN{409}{5}
-\@LN{410}{5}
-\@writefile{toc}{\contentsline {paragraph}{Response length dynamics.}{6}{section*.7}\protected@file@percent }
-\@LN{411}{5}
-\@LN{412}{5}
-\@LN{413}{5}
-\@LN{414}{5}
-\@LN{415}{5}
-\@writefile{toc}{\contentsline {paragraph}{Per-token KL divergence.}{6}{section*.8}\protected@file@percent }
-\@LN{416}{5}
-\@LN{417}{5}
-\@LN{418}{5}
-\@LN{419}{5}
-\@LN{420}{5}
-\@LN{421}{5}
-\@LN{422}{5}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{6}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Why does such a simple intervention work?}{6}{section*.9}\protected@file@percent }
-\@LN{423}{5}
-\@LN{424}{5}
-\@LN{425}{5}
-\@LN{426}{5}
-\@LN{427}{5}
-\@LN{428}{5}
-\@LN{429}{5}
-\@LN{430}{5}
-\@LN{431}{5}
-\@LN{432}{5}
-\@LN{433}{5}
-\@writefile{toc}{\contentsline {paragraph}{Domain generality.}{6}{section*.10}\protected@file@percent }
-\@LN{434}{5}
-\@LN{435}{5}
-\@LN{436}{5}
-\@LN{437}{5}
-\@LN{438}{5}
-\@LN{439}{5}
-\@LN{440}{5}
-\@LN{441}{5}
-\@LN{442}{5}
-\@LN{443}{5}
-\@LN{444}{5}
-\@LN{445}{5}
-\@LN{446}{5}
-\@LN{447}{5}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Masked Self-Distillation}}{6}{algorithm.1}\protected@file@percent }
+\newlabel{alg:masked_opsd}{{1}{6}{Masked Self-Distillation}{algorithm.1}{}}
+\@LN{345}{5}
+\@LN{346}{5}
+\@LN{347}{5}
+\@LN{348}{5}
+\@LN{349}{5}
+\@LN{350}{5}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{6}{section.5}\protected@file@percent }
+\@LN{351}{5}
+\@LN{352}{5}
+\@LN{353}{5}
+\@LN{354}{5}
+\@LN{355}{5}
+\@LN{356}{5}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Setup}{6}{subsection.5.1}\protected@file@percent }
+\@LN{357}{5}
+\@LN{358}{5}
+\@LN{359}{5}
 \def\@LN@column{2}
-\@LN{448}{5}
-\@LN{449}{5}
-\@writefile{toc}{\contentsline {paragraph}{Reference context as a control knob.}{6}{section*.11}\protected@file@percent }
-\@LN{450}{5}
-\@LN{451}{5}
-\@LN{452}{5}
-\@LN{453}{5}
-\@LN{454}{5}
-\@LN{455}{5}
-\@LN{456}{5}
-\@LN{457}{5}
-\@LN{458}{5}
-\@LN{459}{5}
-\@LN{460}{5}
-\@writefile{toc}{\contentsline {paragraph}{Limitations.}{6}{section*.12}\protected@file@percent }
-\@LN{461}{5}
-\@LN{462}{5}
-\@LN{463}{5}
-\@LN{464}{5}
-\@LN{465}{5}
-\@LN{466}{5}
-\@LN{467}{5}
-\@LN{468}{5}
-\@LN{469}{5}
-\@LN{470}{5}
-\@LN{471}{5}
-\@LN{472}{5}
-\@writefile{toc}{\contentsline {paragraph}{Broader implications.}{6}{section*.13}\protected@file@percent }
-\@LN{473}{5}
-\@LN{474}{5}
-\@LN{475}{5}
-\@LN{476}{5}
-\@LN{477}{5}
-\@LN{478}{5}
-\@LN{479}{5}
-\@LN{480}{5}
-\@LN{481}{5}
-\@LN{482}{5}
-\@LN{483}{5}
-\@LN{484}{5}
-\@LN{485}{5}
-\@LN{486}{5}
+\@LN{360}{5}
+\@LN{361}{5}
+\@LN{362}{5}
+\@LN{363}{5}
+\@LN{364}{5}
+\@LN{365}{5}
+\@LN{366}{5}
+\@LN{367}{5}
+\@LN{368}{5}
+\@LN{369}{5}
+\@LN{370}{5}
+\@LN{371}{5}
+\@LN{372}{5}
+\@LN{373}{5}
+\@LN{374}{5}
+\@LN{375}{5}
+\@LN{376}{5}
+\@LN{377}{5}
+\@LN{378}{5}
+\@LN{379}{5}
+\@LN{380}{5}
+\@LN{381}{5}
+\@LN{382}{5}
+\@LN{383}{5}
+\@LN{384}{5}
+\@LN{385}{5}
+\@LN{386}{5}
+\@LN{387}{5}
+\@LN{388}{5}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Main Results}{6}{subsection.5.2}\protected@file@percent }
+\@LN{389}{5}
+\@LN{390}{5}
+\@LN{391}{5}
+\@LN{392}{5}
+\@LN{393}{5}
+\@LN{394}{5}
+\@LN{395}{5}
+\@LN{396}{5}
+\@LN{397}{5}
+\@LN{398}{5}
+\@LN{399}{5}
+\@LN{400}{5}
+\@LN{401}{5}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces \textbf  {Performance comparison under full-reasoning-trace self-distillation.} Parentheses show absolute changes from the base model.}}{7}{table.caption.7}\protected@file@percent }
+\newlabel{tab:cot_results}{{3}{7}{\textbf {Performance comparison under full-reasoning-trace self-distillation.} Parentheses show absolute changes from the base model}{table.caption.7}{}}
+\def\@LN@column{1}
+\@LN{402}{6}
+\@LN{403}{6}
+\@LN{404}{6}
+\@LN{405}{6}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Analysis}{7}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Epistemic token retention.}{7}{section*.10}\protected@file@percent }
+\@LN{406}{6}
+\@LN{407}{6}
+\@LN{408}{6}
+\@LN{409}{6}
+\@LN{410}{6}
+\@LN{411}{6}
+\@LN{412}{6}
+\@LN{413}{6}
+\@LN{414}{6}
+\@LN{415}{6}
+\@LN{416}{6}
+\@LN{417}{6}
+\@LN{418}{6}
+\@writefile{toc}{\contentsline {paragraph}{Response length dynamics.}{7}{section*.11}\protected@file@percent }
+\@LN{419}{6}
+\@LN{420}{6}
+\@LN{421}{6}
+\@LN{422}{6}
+\@LN{423}{6}
+\@LN{424}{6}
+\@LN{425}{6}
+\@LN{426}{6}
+\@LN{427}{6}
+\@LN{428}{6}
+\@LN{429}{6}
+\@LN{430}{6}
+\@LN{431}{6}
+\@LN{432}{6}
+\@LN{433}{6}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{7}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why does such a simple intervention work?}{7}{section*.13}\protected@file@percent }
+\@LN{434}{6}
+\@LN{435}{6}
+\@LN{436}{6}
+\@LN{437}{6}
+\@LN{438}{6}
+\@LN{439}{6}
+\def\@LN@column{2}
+\@LN{440}{6}
+\@LN{441}{6}
+\@LN{442}{6}
+\@LN{443}{6}
+\@LN{444}{6}
+\@LN{445}{6}
+\@LN{446}{6}
+\@writefile{toc}{\contentsline {paragraph}{Domain generality.}{7}{section*.14}\protected@file@percent }
+\@LN{447}{6}
+\@LN{448}{6}
+\@LN{449}{6}
+\@LN{450}{6}
+\@LN{451}{6}
+\@LN{452}{6}
+\@LN{453}{6}
+\@LN{454}{6}
+\@LN{455}{6}
+\@LN{456}{6}
+\@LN{457}{6}
+\@LN{458}{6}
+\@LN{459}{6}
+\@LN{460}{6}
+\@LN{461}{6}
+\@writefile{toc}{\contentsline {paragraph}{Reference context as a control knob.}{7}{section*.15}\protected@file@percent }
+\@LN{462}{6}
+\@LN{463}{6}
+\@LN{464}{6}
+\@LN{465}{6}
+\@LN{466}{6}
+\@LN{467}{6}
+\@LN{468}{6}
+\@LN{469}{6}
+\@LN{470}{6}
+\@LN{471}{6}
+\@LN{472}{6}
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{7}{section*.16}\protected@file@percent }
+\@LN{473}{6}
+\@LN{474}{6}
+\@LN{475}{6}
+\@LN{476}{6}
+\@LN{477}{6}
+\@LN{478}{6}
+\@LN{479}{6}
+\citation{ziegler2019finetuning,stiennon2020learning,bai2022training,ouyang2022training}
 \bibdata{custom}
 \bibcite{agarwal2024onpolicy}{{1}{2024}{{Agarwal et~al.}}{{Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist, and Bachem}}}
-\bibcite{deng2026conpress}{{2}{2026}{{Deng et~al.}}{{Deng, Liang, Li, Li, and Xie}}}
-\bibcite{guha2025openthoughts}{{3}{2025}{{Guha et~al.}}{{Guha, Marten, Keh, Raoof, Smyrnis, Bansal, Nezhurina, Mercat, Vu, Sprague et~al.}}}
-\bibcite{hubotter2026reinforcement}{{4}{2026}{{H{\"u}botter et~al.}}{{H{\"u}botter, L{\"u}beck, Behric, Baumann, Bagatella, M{\"a}rta, Hakimi, Shenfeld, B{\"u}ening, Guestrin et~al.}}}
-\bibcite{luo2026compress}{{5}{2026}{{Luo et~al.}}{{Luo, Ren, Chen, Liu, Fang, Tan, and Huang}}}
-\bibcite{sang2026onpolicy}{{6}{2026}{{Sang et~al.}}{{Sang, Xu, Zhou, He, Wang, and Sun}}}
-\bibcite{shrivastava2025sample}{{7}{2025}{{Shrivastava et~al.}}{{Shrivastava, Awadallah, Balachandran, Garg, Behl, and Papailiopoulos}}}
-\bibcite{snell2022learning}{{8}{2022}{{Snell et~al.}}{{Snell, Klein, and Zhong}}}
-\bibcite{yang2026accordion}{{9}{2026}{{Yang et~al.}}{{Yang, Guo, Huang, Wang, Shi, Wang, Liang, and Tang}}}
-\bibcite{zhao2026self}{{10}{2026}{{Zhao et~al.}}{{Zhao, Xie, Liu, Huang, Pang, Chen, and Grover}}}
-\bibstyle{acl_natbib}
+\bibcite{bai2022training}{{2}{2022}{{Bai et~al.}}{{Bai, Jones, Ndousse, Askell, Chen, DasSarma, Drain, Fort, Ganguli, Henighan et~al.}}}
+\bibcite{chung2024scaling}{{3}{2024}{{Chung et~al.}}{{Chung, Hou, Longpre, Zoph, Tay, Fedus, Li, Wang, Dehghani, Brahma et~al.}}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Training curves for full-reasoning-trace self-distillation (1.5B).}}{8}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:cot_aime}{{5}{8}{Training curves for full-reasoning-trace self-distillation (1.5B)}{figure.caption.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Training curves for full-reasoning-trace self-distillation (7B).}}{8}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:cot_aime_7b}{{6}{8}{Training curves for full-reasoning-trace self-distillation (7B)}{figure.caption.9}{}}
 \def\@LN@column{1}
-\@LN{487}{6}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{7}{section.7}\protected@file@percent }
-\@LN{488}{6}
-\@LN{489}{6}
-\@LN{490}{6}
-\@LN{491}{6}
-\@LN{492}{6}
-\@LN{493}{6}
-\@LN{494}{6}
-\@LN{495}{6}
-\@LN{496}{6}
-\@LN{497}{6}
-\@LN{498}{6}
-\@LN{499}{6}
-\@LN{500}{6}
-\@LN{501}{6}
-\@LN{502}{6}
-\@LN{503}{6}
-\@LN{504}{6}
-\@LN{505}{6}
-\@LN{506}{6}
-\@LN{507}{6}
-\@LN{508}{6}
-\@LN{509}{6}
-\@LN{510}{6}
-\@LN{511}{6}
-\@LN{512}{6}
-\@LN{513}{6}
-\@LN{514}{6}
-\@LN{515}{6}
-\@LN{516}{6}
-\@LN{517}{6}
-\@LN{518}{6}
-\@LN{519}{6}
-\@LN{520}{6}
-\@LN{521}{6}
-\@LN{522}{6}
-\@LN{523}{6}
-\@LN{524}{6}
-\@LN{525}{6}
-\@LN{526}{6}
-\@LN{527}{6}
-\@LN{528}{6}
-\@LN{529}{6}
-\@LN{530}{6}
-\@LN{531}{6}
-\@LN{532}{6}
-\@LN{533}{6}
-\@LN{534}{6}
-\@LN{535}{6}
-\@LN{536}{6}
-\@LN{537}{6}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Epistemic-token and response-length trajectories (1.5B).}}{8}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:dynamics}{{7}{8}{Epistemic-token and response-length trajectories (1.5B)}{figure.caption.12}{}}
+\@LN{480}{7}
+\@writefile{toc}{\contentsline {paragraph}{Broader implications.}{8}{section*.17}\protected@file@percent }
+\@LN{481}{7}
+\@LN{482}{7}
+\@LN{483}{7}
+\@LN{484}{7}
+\@LN{485}{7}
+\@LN{486}{7}
+\@LN{487}{7}
+\@LN{488}{7}
+\@LN{489}{7}
+\@LN{490}{7}
+\@LN{491}{7}
+\@LN{492}{7}
+\@LN{493}{7}
+\@LN{494}{7}
+\@LN{495}{7}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{8}{section.7}\protected@file@percent }
+\@LN{496}{7}
+\@LN{497}{7}
+\@LN{498}{7}
 \def\@LN@column{2}
-\@LN{538}{6}
-\@LN{539}{6}
-\@LN{540}{6}
-\@LN{541}{6}
-\@LN{542}{6}
-\@LN{543}{6}
-\@LN{544}{6}
-\@LN{545}{6}
-\@LN{546}{6}
-\@LN{547}{6}
-\@LN{548}{6}
-\@LN{549}{6}
-\@LN{550}{6}
-\@LN{551}{6}
-\@LN{552}{6}
-\@LN{553}{6}
-\@LN{554}{6}
-\@LN{555}{6}
-\@LN{556}{6}
-\@LN{557}{6}
-\@LN{558}{6}
-\@LN{559}{6}
-\@LN{560}{6}
-\gdef \@abspage@last{7}
+\@LN{499}{7}
+\@LN{500}{7}
+\@LN{501}{7}
+\@LN{502}{7}
+\@LN{503}{7}
+\@LN{504}{7}
+\@LN{505}{7}
+\@LN{506}{7}
+\@LN{507}{7}
+\@LN{508}{7}
+\@LN{509}{7}
+\@LN{510}{7}
+\@LN{511}{7}
+\@LN{512}{7}
+\@LN{513}{7}
+\@LN{514}{7}
+\@LN{515}{7}
+\@LN{516}{7}
+\@LN{517}{7}
+\@LN{518}{7}
+\@LN{519}{7}
+\@LN{520}{7}
+\@LN{521}{7}
+\@LN{522}{7}
+\@LN{523}{7}
+\@LN{524}{7}
+\@LN{525}{7}
+\@LN{526}{7}
+\@LN{527}{7}
+\bibcite{cobbe2021training}{{4}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano et~al.}}}
+\bibcite{deng2026conpress}{{5}{2026}{{Deng et~al.}}{{Deng, Liang, Li, Li, and Xie}}}
+\bibcite{guha2025openthoughts}{{6}{2025}{{Guha et~al.}}{{Guha, Marten, Keh, Raoof, Smyrnis, Bansal, Nezhurina, Mercat, Vu, Sprague et~al.}}}
+\bibcite{guo2025deepseek}{{7}{2025}{{Guo et~al.}}{{Guo, Yang, Zhang, Song, Wang, Zhu, Xu, Zhang, Ma, Bi et~al.}}}
+\bibcite{hendrycks2021measuring}{{8}{2021}{{Hendrycks et~al.}}{{Hendrycks, Burns, Kadavath, Arora, Basart, Tang, Song, and Steinhardt}}}
+\bibcite{huang2023large}{{9}{2023}{{Huang et~al.}}{{Huang, Chen, Mishra, Zheng, Yu, Song, and Zhou}}}
+\bibcite{hubotter2026reinforcement}{{10}{2026}{{H{\"u}botter et~al.}}{{H{\"u}botter, L{\"u}beck, Behric, Baumann, Bagatella, M{\"a}rta, Hakimi, Shenfeld, B{\"u}ening, Guestrin et~al.}}}
+\bibcite{mathverify2024}{{11}{2024}{{HuggingFace}}{{}}}
+\bibcite{jin2026unisd}{{12}{2026}{{Jin et~al.}}{{Jin, Wang, Fu, Xiao, Luo, Liu, Prakash, Hester, Wang, and Kumar}}}
+\bibcite{kadavath2022language}{{13}{2022}{{Kadavath et~al.}}{{Kadavath, Conerly, Askell, Henighan, Drain, Perez, Schiefer, Hatfield-Dodds, DasSarma, Tran-Johnson et~al.}}}
+\bibcite{kojima2022large}{{14}{2022}{{Kojima et~al.}}{{Kojima, Gu, Reid, Matsuo, and Iwasawa}}}
+\bibcite{lightman2023lets}{{15}{2023}{{Lightman et~al.}}{{Lightman, Kosaraju, Burda, Edwards, Baker, Lee, Leike, Schulman, Sutskever, and Cobbe}}}
+\bibcite{lin2022teaching}{{16}{2022}{{Lin et~al.}}{{Lin, Hilton, and Evans}}}
+\bibcite{liu2026exploratory}{{17}{2026}{{Liu et~al.}}{{Liu, Kim, Luo, Li, and Yang}}}
+\bibcite{luo2026compress}{{18}{2026}{{Luo et~al.}}{{Luo, Ren, Chen, Liu, Fang, Tan, and Huang}}}
+\bibcite{madaan2023self}{{19}{2023}{{Madaan et~al.}}{{Madaan, Tandon, Gupta, Hallinan, Gao, Wiegreffe, Alon, Dziri, Prabhumoye, Yang et~al.}}}
+\bibcite{ouyang2022training}{{20}{2022}{{Ouyang et~al.}}{{Ouyang, Wu, Jiang, Almeida, Wainwright, Mishkin, Zhang, Agarwal, Slama, Ray et~al.}}}
+\bibcite{patel2021svamp}{{21}{2021}{{Patel et~al.}}{{Patel, Bhattamishra, and Goyal}}}
+\bibcite{penaloza2026privileged}{{22}{2026}{{Pe{\~n}aloza et~al.}}{{Pe{\~n}aloza, Vattikonda, Gontier, Lacoste, Charlin, and Caccia}}}
+\bibcite{sang2026onpolicy}{{23}{2026}{{Sang et~al.}}{{Sang, Xu, Zhou, He, Wang, and Sun}}}
+\bibcite{saxton2019analysing}{{24}{2019}{{Saxton et~al.}}{{Saxton, Grefenstette, Hill, and Kohli}}}
+\bibcite{shao2024deepseekmath}{{25}{2024}{{Shao et~al.}}{{Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu et~al.}}}
+\def\@LN@column{1}
+\@LN{528}{8}
+\@LN{529}{8}
+\@LN{530}{8}
+\@LN{531}{8}
+\@LN{532}{8}
+\@LN{533}{8}
+\@LN{534}{8}
+\@LN{535}{8}
+\@LN{536}{8}
+\@LN{537}{8}
+\@LN{538}{8}
+\@LN{539}{8}
+\@LN{540}{8}
+\@LN{541}{8}
+\@LN{542}{8}
+\@LN{543}{8}
+\@LN{544}{8}
+\@LN{545}{8}
+\@LN{546}{8}
+\@LN{547}{8}
+\@LN{548}{8}
+\@LN{549}{8}
+\@LN{550}{8}
+\@LN{551}{8}
+\@LN{552}{8}
+\@LN{553}{8}
+\@LN{554}{8}
+\@LN{555}{8}
+\@LN{556}{8}
+\@LN{557}{8}
+\@LN{558}{8}
+\@LN{559}{8}
+\@LN{560}{8}
+\@LN{561}{8}
+\@LN{562}{8}
+\@LN{563}{8}
+\@LN{564}{8}
+\@LN{565}{8}
+\@LN{566}{8}
+\@LN{567}{8}
+\@LN{568}{8}
+\@LN{569}{8}
+\@LN{570}{8}
+\@LN{571}{8}
+\@LN{572}{8}
+\@LN{573}{8}
+\@LN{574}{8}
+\@LN{575}{8}
+\@LN{576}{8}
+\@LN{577}{8}
+\@LN{578}{8}
+\@LN{579}{8}
+\@LN{580}{8}
+\@LN{581}{8}
+\@LN{582}{8}
+\def\@LN@column{2}
+\@LN{583}{8}
+\@LN{584}{8}
+\@LN{585}{8}
+\@LN{586}{8}
+\@LN{587}{8}
+\@LN{588}{8}
+\@LN{589}{8}
+\@LN{590}{8}
+\@LN{591}{8}
+\@LN{592}{8}
+\@LN{593}{8}
+\@LN{594}{8}
+\@LN{595}{8}
+\@LN{596}{8}
+\@LN{597}{8}
+\@LN{598}{8}
+\@LN{599}{8}
+\@LN{600}{8}
+\@LN{601}{8}
+\@LN{602}{8}
+\@LN{603}{8}
+\@LN{604}{8}
+\@LN{605}{8}
+\@LN{606}{8}
+\@LN{607}{8}
+\@LN{608}{8}
+\@LN{609}{8}
+\@LN{610}{8}
+\@LN{611}{8}
+\@LN{612}{8}
+\@LN{613}{8}
+\@LN{614}{8}
+\@LN{615}{8}
+\@LN{616}{8}
+\@LN{617}{8}
+\@LN{618}{8}
+\@LN{619}{8}
+\@LN{620}{8}
+\@LN{621}{8}
+\@LN{622}{8}
+\@LN{623}{8}
+\@LN{624}{8}
+\@LN{625}{8}
+\@LN{626}{8}
+\@LN{627}{8}
+\@LN{628}{8}
+\@LN{629}{8}
+\@LN{630}{8}
+\@LN{631}{8}
+\@LN{632}{8}
+\@LN{633}{8}
+\@LN{634}{8}
+\@LN{635}{8}
+\@LN{636}{8}
+\bibcite{shenfeld2026self}{{26}{2026}{{Shenfeld et~al.}}{{Shenfeld, Damani, H{\"u}botter, and Agrawal}}}
+\bibcite{sheng2024hybridflow}{{27}{2024}{{Sheng et~al.}}{{Sheng, Zhang, Ye, Wu, Zhang, Zhang, Peng, Lin, and Wu}}}
+\bibcite{shrivastava2025sample}{{28}{2025}{{Shrivastava et~al.}}{{Shrivastava, Awadallah, Balachandran, Garg, Behl, and Papailiopoulos}}}
+\bibcite{snell2022learning}{{29}{2022}{{Snell et~al.}}{{Snell, Klein, and Zhong}}}
+\bibcite{song2026expanding}{{30}{2026}{{Song et~al.}}{{Song, Chen, Tajwar, Munos, Pathak, Bagnell, Singh, and Zanette}}}
+\bibcite{stiennon2020learning}{{31}{2020}{{Stiennon et~al.}}{{Stiennon, Ouyang, Wu, Ziegler, Lowe, Voss, Radford, Amodei, and Christiano}}}
+\bibcite{tian2023fine}{{32}{2023}{{Tian et~al.}}{{Tian, Mitchell, Yao, Manning, and Finn}}}
+\bibcite{uesato2022solving}{{33}{2022}{{Uesato et~al.}}{{Uesato, Kushman, Kumar, Song, Siegel, Wang, Creswell, Irving, and Higgins}}}
+\bibcite{wang2023selfconsistency}{{34}{2023}{{Wang et~al.}}{{Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery, and Zhou}}}
+\bibcite{wei2022flan}{{35}{2022{a}}{{Wei et~al.}}{{Wei, Bosma, Zhao, Guu, Yu, Lester, Du, Dai, and Le}}}
+\bibcite{wei2022chain}{{36}{2022{b}}{{Wei et~al.}}{{Wei, Wang, Schuurmans, Bosma, Xia, Chi, Le, and Zhou}}}
+\bibcite{yang2026accordion}{{37}{2026}{{Yang et~al.}}{{Yang, Guo, Huang, Wang, Shi, Wang, Liang, and Tang}}}
+\bibcite{yao2023tree}{{38}{2023}{{Yao et~al.}}{{Yao, Yu, Zhao, Shafran, Griffiths, Cao, and Narasimhan}}}
+\bibcite{ye2026onpolicy}{{39}{2026}{{Ye et~al.}}{{Ye, Dong, Wu, Huang, and Wei}}}
+\bibcite{yu2025dapo}{{40}{2025}{{Yu et~al.}}{{Yu, Zhang, Zhu, Yuan, Zuo, Yue, Dai, Fan, Liu, Liu et~al.}}}
+\bibcite{zhang2026simple}{{41}{2026{a}}{{Zhang et~al.}}{{Zhang, Bai, Zheng, Jaitly, Collobert, and Zhang}}}
+\bibcite{zhang2026opsdl}{{42}{2026{b}}{{Zhang et~al.}}{{Zhang, Ding, Pan, Yang, Kang, Xiong, and Gu}}}
+\bibcite{zhou2023leasttomost}{{43}{2023}{{Zhou et~al.}}{{Zhou, Sch{\"a}rli, Hou, Wei, Scales, Wang, Schuurmans, Cui, Bousquet, Le, and Chi}}}
+\bibcite{ziegler2019finetuning}{{44}{2019}{{Ziegler et~al.}}{{Ziegler, Stiennon, Wu, Brown, Radford, Amodei, Christiano, and Irving}}}
+\def\@LN@column{1}
+\@LN{637}{9}
+\@LN{638}{9}
+\@LN{639}{9}
+\@LN{640}{9}
+\@LN{641}{9}
+\@LN{642}{9}
+\@LN{643}{9}
+\@LN{644}{9}
+\@LN{645}{9}
+\@LN{646}{9}
+\@LN{647}{9}
+\@LN{648}{9}
+\@LN{649}{9}
+\@LN{650}{9}
+\@LN{651}{9}
+\@LN{652}{9}
+\@LN{653}{9}
+\@LN{654}{9}
+\@LN{655}{9}
+\@LN{656}{9}
+\@LN{657}{9}
+\@LN{658}{9}
+\@LN{659}{9}
+\@LN{660}{9}
+\@LN{661}{9}
+\@LN{662}{9}
+\@LN{663}{9}
+\@LN{664}{9}
+\@LN{665}{9}
+\@LN{666}{9}
+\@LN{667}{9}
+\@LN{668}{9}
+\@LN{669}{9}
+\@LN{670}{9}
+\@LN{671}{9}
+\@LN{672}{9}
+\@LN{673}{9}
+\@LN{674}{9}
+\@LN{675}{9}
+\@LN{676}{9}
+\@LN{677}{9}
+\@LN{678}{9}
+\@LN{679}{9}
+\@LN{680}{9}
+\@LN{681}{9}
+\@LN{682}{9}
+\@LN{683}{9}
+\@LN{684}{9}
+\@LN{685}{9}
+\@LN{686}{9}
+\@LN{687}{9}
+\@LN{688}{9}
+\@LN{689}{9}
+\@LN{690}{9}
+\@LN{691}{9}
+\def\@LN@column{2}
+\@LN{692}{9}
+\@LN{693}{9}
+\@LN{694}{9}
+\@LN{695}{9}
+\@LN{696}{9}
+\@LN{697}{9}
+\@LN{698}{9}
+\@LN{699}{9}
+\@LN{700}{9}
+\@LN{701}{9}
+\@LN{702}{9}
+\@LN{703}{9}
+\@LN{704}{9}
+\@LN{705}{9}
+\@LN{706}{9}
+\@LN{707}{9}
+\@LN{708}{9}
+\@LN{709}{9}
+\@LN{710}{9}
+\@LN{711}{9}
+\@LN{712}{9}
+\@LN{713}{9}
+\@LN{714}{9}
+\@LN{715}{9}
+\@LN{716}{9}
+\@LN{717}{9}
+\@LN{718}{9}
+\@LN{719}{9}
+\@LN{720}{9}
+\@LN{721}{9}
+\@LN{722}{9}
+\@LN{723}{9}
+\@LN{724}{9}
+\@LN{725}{9}
+\@LN{726}{9}
+\@LN{727}{9}
+\@LN{728}{9}
+\@LN{729}{9}
+\@LN{730}{9}
+\citation{guha2025openthoughts}
+\def\@LN@column{1}
+\@LN{731}{10}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Training Details}{11}{section.A}\protected@file@percent }
+\newlabel{app:hyperparams}{{A}{11}{Training Details}{section.A}{}}
+\@LN{732}{10}
+\@LN{733}{10}
+\@LN{734}{10}
+\@LN{735}{10}
+\@LN{736}{10}
+\@LN{737}{10}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Training hyperparameters shared by all self-distillation experiments.}}{11}{table.caption.19}\protected@file@percent }
+\newlabel{tab:hyperparams}{{4}{11}{Training hyperparameters shared by all self-distillation experiments}{table.caption.19}{}}
+\@LN{738}{10}
+\@writefile{toc}{\contentsline {section}{\numberline {B}Prompt Templates}{11}{section.B}\protected@file@percent }
+\@LN{739}{10}
+\@LN{740}{10}
+\@LN{741}{10}
+\def\@LN@column{2}
+\@LN{742}{10}
+\@LN{743}{10}
+\@LN{744}{10}
+\@LN{745}{10}
+\@LN{746}{10}
+\@LN{747}{10}
+\@LN{748}{10}
+\@LN{749}{10}
+\@LN{750}{10}
+\@LN{751}{10}
+\@LN{752}{10}
+\@LN{753}{10}
+\@LN{754}{10}
+\@LN{755}{10}
+\def\@LN@column{1}
+\@LN{756}{11}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Case Study: Suppression of Reflective Reasoning}{12}{section.C}\protected@file@percent }
+\newlabel{app:case}{{C}{12}{Case Study: Suppression of Reflective Reasoning}{section.C}{}}
+\@LN{757}{11}
+\@LN{758}{11}
+\@LN{759}{11}
+\@LN{760}{11}
+\@LN{761}{11}
+\@LN{762}{11}
+\@LN{763}{11}
+\@LN{764}{11}
+\@LN{765}{11}
+\def\@LN@column{1}
+\@LN{766}{12}
+\@LN{767}{12}
+\gdef \@abspage@last{13}

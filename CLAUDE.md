@@ -50,9 +50,17 @@
 | `recipe/math_challenger_solver_judge/` | 自建 | 上一个 recipe 的 judge 变体，引入 judge 模型参与评分 |
 | `recipe/entropy_vis/` | 自建工具 | 多模型逐 token 熵对比可视化（vLLM + HTML 前端） |
 | `recipe/sd_vis/` | 自建工具 | Self-distillation teacher/student logit 诊断可视化 |
-| `recipe/RLSD/` | 已终止（2026-05-09） | RL + Self-Distillation：解决 GRPO 组内全错零梯度问题。实验发现表面增益来自"记忆捷径"而非真实推理，详见 `recipe/RLSD/README.md` 末尾结论 |
+| `recipe/RLSD/` | **活跃 — EMNLP 2026 投稿中** | Epistemic Token Masking for Self-Distillation。详见 `recipe/RLSD/CONTEXT.md` |
 
 每个 recipe 目录自带 README（或直接看代码），有具体用法、数据、实验结论。修改/新增 recipe 前先读对应 README，避免误伤已有实验产物。
+
+## EMNLP 2026 论文 (`papers/emnlp2026/`)
+
+- **截稿**: May 25 UTC-12
+- **主文件**: `papers/emnlp2026/main.tex`（10 页，编译需在 `/tmp` 下）
+- **图表**: 由 `recipe/RLSD/figures/generate_figures.py` 生成 → 输出到 `papers/emnlp2026/figures/`
+- **上下文**: 详见 `recipe/RLSD/CONTEXT.md` 第十三节（论文结构、数据、图表清单、编译 SOP）
+- **RLSD 状态**: 原 recipe 标记"已终止"，但论文基于其后续实验（COT-reference OPSD + epistemic token masking）仍在投稿中
 
 ## Git
 

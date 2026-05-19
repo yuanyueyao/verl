@@ -708,7 +708,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ---
 
-## 十四、SFT Baseline 实验（已准备，待跑）
+## 十四、SFT Baseline 实验（1.5B 已训练，评测中）
 
 ### 目的
 
@@ -719,11 +719,12 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 | 脚本                       | 说明                                                 |
 | ------------------------ | -------------------------------------------------- |
-| `sft_train.py`           | 自定义 SFT 训练器（accelerate + HF，prompt-masked CE loss） |
-| `run_sft_ds_qwen1.5b.sh` | DS-R1-Distill-Qwen-1.5B，100 steps                  |
-| `run_sft_ds_qwen7b.sh`   | DS-R1-Distill-Qwen-7B，100 steps                    |
-| `run_sft_all.sh`         | 串行 wrapper（1.5B → 7B）                              |
-| `wait_and_run_sft.sh`    | GPU 监控，≥4 卡空闲自动触发                                  |
+| `sft_train.py`           | 自定义 SFT 训练器（DDP + HF，prompt-masked CE loss） |
+| `sft_eval.py`            | SFT checkpoint 评测脚本；AIME avg@12、MATH pass@1，可选 GSM8K |
+| `run_sft_ds_qwen1.5b.sh` | DS-R1-Distill-Qwen-1.5B，100 steps，当前主 SFT baseline |
+| `run_sft_ds_qwen7b.sh`   | DS-R1-Distill-Qwen-7B，100 steps（可选后续实验） |
+| `run_sft_all.sh`         | 串行 wrapper（1.5B → 7B；当前不作为默认入口） |
+| `wait_and_run_sft.sh`    | GPU 监控，≥4 卡空闲自动触发（可选） |
 
 
 ### 参数对齐（SD experiments）
@@ -744,9 +745,11 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ```bash
 conda activate verl
-# 手动：
-bash recipe/RLSD/run_sft_all.sh
-# 或等待 GPU 空闲自动触发（已写入 CONTEXT 供其他机器参考）
+# 当前 1.5B SFT baseline：
+bash recipe/RLSD/run_sft_ds_qwen1.5b.sh
+
+# 可选：如果需要串行跑 1.5B + 7B，再使用 wrapper：
+# bash recipe/RLSD/run_sft_all.sh
 ```
 
 ### 数据格式
@@ -754,18 +757,26 @@ bash recipe/RLSD/run_sft_all.sh
 `problem` 列 → prompt，`COT_Reason` 列 → response（same as SD teacher reference）。
 Loss 只计算 response 部分（prompt tokens 标注为 -100）。
 
-### ⚠️ Prompt 对齐问题（已知，已修复代码但未重跑）
+### Prompt / Eval 对齐记录
 
 **发现日期**: 2026-05-19
 
-**问题**: 初版 `sft_train.py` 的 `SFTDataset` 训练时使用裸 `{"role": "user", "content": prompt}` 作为 prompt，但 `sft_eval.py` 评测时使用 `build_student_messages()`（含 system prompt + "Problem: " 前缀 + "boxed{}" 指令后缀）。训练/评测 prompt 格式不一致，会导致 SFT baseline 评测分数被系统性压低。
+**Prompt 问题**: 初版 `sft_train.py` 的 `SFTDataset` 训练时使用裸 `{"role": "user", "content": prompt}` 作为 prompt，但 `sft_eval.py` 评测时使用 `build_student_messages()`（含 system prompt + "Problem: " 前缀 + "boxed{}" 指令后缀）。训练/评测 prompt 格式不一致，会导致 SFT baseline 评测分数被系统性压低。
 
 **修复**: `sft_train.py` 的 `__getitem__` 已改为调用 `build_student_messages(question)` 组装 prompt，确保训练与评测格式完全一致。
 
-**当前实验状态**: 所有已跑完的 SFT 实验（`run_20260519_`* 系列）**均使用了旧版未对齐的代码**。由于时间关系未中断测试——这些结果在用作文中 baseline 数字时需标注 prompt 未对齐，后续应重新训练并评测。
+**Eval 问题**: 初版 `sft_eval.py` 存在三处不对齐：从 `row["prompt"][0]` 取到了 system prompt，GSM8K ground truth 优先级错误，且 AIME 展开 12 次后又设置 `SamplingParams(n=12)`，导致每题实际生成 144 个 completion。
+
+**修复**: `sft_eval.py` 已改为复用 `question_from_verl_prompt()`、`build_student_messages()` 和 `is_correct()`；AIME 现在每题实际生成 12 个 completion；MATH/GSM8K pass@1 使用 greedy decoding；默认 `max_samples=64` 对齐 masked self-distillation 在线评测，GSM8K 可用 `--include_gsm8k --gsm8k_max_samples 1000` 作为额外评测。
+
+**当前 1.5B run**:
+
+- 训练 checkpoint: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b/run_20260519_035545`
+- 训练日志: `/data3/yyy/verl/logs/rlsd/sft_ds_qwen1.5b_20260519_035545.log`
+- 当前评测会话: `tmux rlsd_sft_15b_eval_fixed4`
+- 当前评测输出: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b_eval/run_20260519_035545_fixed4`
+- 当前评测日志: `/data3/yyy/verl/logs/rlsd/sft_ds_qwen1.5b_eval_fixed_20260519_035545_fixed4.log`
 
 **待重跑**: 
 
-- DS-R1-Distill-Qwen-1.5B SFT — `run_sft_ds_qwen1.5b.sh`（有代码修复前结果。代码已修复，待重新执行）
 - DS-R1-Distill-Qwen-7B SFT — `run_sft_ds_qwen7b.sh`（代码已修复，待执行）
-
