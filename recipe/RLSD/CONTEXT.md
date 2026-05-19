@@ -521,6 +521,37 @@ Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive
 
 **论文价值**: 此例展示了 base 模型自然具备的 reflective reasoning 循环——犯错→察觉→纠正→交叉验证。对比 naive SD 训练后此能力被抑制、masked SD 训练后此能力保留，是支撑论文核心 claim 的 qualitative evidence。
 
+### Naive SD 对照：同一题的简短输出
+
+> 来自 DS-R1-Distill-Qwen-1.5B COT Naive OPSD step 100（MATH-500 problem 34），直接对比 base 模型的同题输出。
+
+**结果**: 正确 (答案 -125) ✓
+
+**回复长度**: 2,964 chars（base 模型 ~8,500 chars 的 35%）
+
+**Epistemic tokens**: 仅 2 个——开头的 "Hmm" 和中间的 1 个 "Wait"
+
+**推理过程**: 一步到位：binomial theorem → k=3 → 直接算出 -125 → "Wait, let me double-check that"（快速复查常数乘法）→ "Yes, that seems right. I think that's it. I don't see any mistakes in the calculations."
+
+**缺失的验证行为**:
+- ❌ 无错误自纠循环（base 模型犯了计算错误后自我发现并纠正）
+- ❌ 无交叉验证（base 模型展开了全部 6 项 k=0..5 逐一核对）
+- ❌ 无 "where did I go wrong?" 式复盘
+- ✅ 仅一次快速常数乘法复查
+
+**Base vs Naive SD 对比摘要**:
+
+| 维度 | Base (step 0) | Naive SD (step 100) |
+|------|--------------|---------------------|
+| 回复长度 | ~8,500 chars | ~3,000 chars (−65%) |
+| Epistemic tokens | 7+ | 2 |
+| 计 算错误 | 有（遗漏×100） | 无 |
+| 自我纠正 | ✅ 发现→纠正 | N/A（未犯错） |
+| 交叉验证 | ✅ 展开 6 项 | ❌ 无 |
+| 复盘反思 | "where did I go wrong?" | "I don't see any mistakes" |
+
+**论文价值**: 同一题的直接对比。Naive SD 虽然答案正确，但推理模式从 "thorough verification" 退化为 "confident minimal check"。这种 epistemic token 的消失正是论文诊断的退化机制——如果 naive SD 遇到更复杂的题，缺乏验证习惯会导致不可察觉的错误。
+
 ### 编译 SOP
 
 ```bash
