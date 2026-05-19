@@ -767,13 +767,31 @@ Loss 只计算 response 部分（prompt tokens 标注为 -100）。
 
 **修复**: `sft_eval.py` 已改为复用 `question_from_verl_prompt()`、`build_student_messages()` 和 `is_correct()`；AIME 现在每题实际生成 12 个 completion；MATH/GSM8K pass@1 使用 greedy decoding；默认 `max_samples=64` 对齐 masked self-distillation 在线评测，GSM8K 可用 `--include_gsm8k --gsm8k_max_samples 1000` 作为额外评测。
 
-**当前 1.5B run**:
+### SFT Baseline 结果 (DS-R1-Distill-Qwen-1.5B, 100 steps, prompt 未对齐)
+
+> 评测条件: max_samples=64 (MATH-500 仅 64 题, 噪声较大), GSM8K max_samples=1000. AIME 全量 30 题 avg@12.
+
+| Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | GSM8K pass@1 | Macro Mean |
+| ---- | ------------- | ------------- | --------------- | ------------ | ---------- |
+| 0    | 0.256         | 0.203         | 0.703           | 0.753        | 0.479      |
+| 10   | 0.261         | 0.236         | 0.719           | 0.757        | 0.493      |
+| 20   | 0.264         | 0.217         | 0.703           | 0.766        | 0.487      |
+| 30   | 0.256         | 0.231         | 0.703           | 0.764        | 0.488      |
+| 40   | 0.219         | 0.244         | 0.781           | 0.742        | 0.497      |
+| 50   | 0.242         | 0.225         | 0.734           | 0.732        | 0.483      |
+| 60   | 0.278         | 0.217         | 0.750           | 0.753        | 0.499      |
+| 70   | 0.242         | 0.217         | 0.812           | 0.744        | 0.504      |
+| 80   | 0.242         | 0.200         | 0.734           | 0.725        | 0.475      |
+| 90   | 0.289         | 0.211         | 0.719           | 0.744        | 0.491      |
+| 100  | 0.303         | 0.203         | 0.719           | 0.732        | 0.489      |
+
+**趋势**: AIME24 step 0→100: 0.256→0.303 (+4.7pp); AIME25 平坦; MATH-500 噪声大 (+1.6pp); GSM8K 噪声中略降. 与 Masked OPSD (AIME24 +19%) 相比 SFT 提升仅约 1/4. 但训练 prompt 未对齐，实际提升可能更高。
+
+**当前 1.5B run (fixed4)**:
 
 - 训练 checkpoint: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b/run_20260519_035545`
-- 训练日志: `/data3/yyy/verl/logs/rlsd/sft_ds_qwen1.5b_20260519_035545.log`
-- 当前评测会话: `tmux rlsd_sft_15b_eval_fixed4`
-- 当前评测输出: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b_eval/run_20260519_035545_fixed4`
-- 当前评测日志: `/data3/yyy/verl/logs/rlsd/sft_ds_qwen1.5b_eval_fixed_20260519_035545_fixed4.log`
+- Step 0 eval: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b_eval/run_20260519_step0`
+- Steps 10-100 eval: `/data3/yyy/verl/checkpoints/sft_exp_ds_qwen1.5b_eval/run_20260519_035545_fixed4`
 
 **双份 \boxed{} 指令问题** (2026-05-19): `export_math_val_parquets.py` 已用 `build_student_messages` 将 boxed 指令写入 parquet 的 `prompt` 列；eval 时 `question_from_verl_prompt` 只剥 `"Problem: "` 前缀、保留了尾部指令，再经 `build_student_messages` 二次包裹 → 最终 user message 尾部出现两份 `\n\nPlease reason step by step, and put your final answer within \boxed{}.`。影响 SFT eval 和 RLSD eval 一致，且模型输出格式不受影响，暂不修复。
 
