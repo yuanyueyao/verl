@@ -8,9 +8,8 @@
 
 发 EMNLP 2026 论文（截稿 May 25 UTC-12）。
 
-**核心 claim**：在 self-distillation (OPSD) 的 per-token KL loss 中 mask 掉 epistemic token 位置，可以防止数学推理退化。
+## **核心 claim**：在 self-distillation (OPSD) 的 per-token KL loss 中 mask 掉 epistemic token 位置，可以防止数学推理退化。
 **初稿论文路径**：`papers/emnlp2026/main.tex`
----
 
 ## 二、背景论文（必读）
 
@@ -18,6 +17,7 @@
 → `recipe/new-idea/_mineru/full.md`
 
 关键发现：
+
 1. SDPO (self-distillation) 在数学推理上导致 AIME24 退化 ~40%
 2. 根因：teacher 拿到 GT 答案后，推理变得过度 confident，抑制了 epistemic verbalization
 3. Epistemic tokens: {wait, hmm, perhaps, maybe, actually, alternatively, seems, might, likely, check}
@@ -30,6 +30,7 @@
 **Uncertainty-Aware Self-Distillation = per-token masking of epistemic markers**
 
 在 SD 的 token-level KL loss 中：
+
 - `mask[t] = 0` 当 student 生成的 token 是 epistemic token（"Wait", "Hmm" 等）
 - `mask[t] = 1` 否则
 - `loss = Σ(mask[t] * KL_t) / Σ(mask[t])`
@@ -47,14 +48,16 @@
 - 配置：opsd_only=true, sd_mask_mode=token_identity
 - 200 steps，8×A800-80GB
 
+
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 |
-|------|---------------|---------------|-----------------|
+| ---- | ------------- | ------------- | --------------- |
 | 0    | 0.478         | 0.381         | 0.868           |
 | 10   | 0.522         | 0.356         | 0.876           |
 | 50   | 0.522         | 0.353         | 0.884           |
 | 100  | 0.475         | 0.358         | 0.878           |
 | 150  | 0.478         | 0.372         | 0.884           |
 | 170  | 0.481         | 0.347         | 0.890           |
+
 
 **结论**：AIME24 完全平坦，零退化。mask 有效。
 
@@ -133,29 +136,33 @@ actor._update_sd()
 
 ### 聚合结果（30 samples / 条件）
 
-| 条件 | Avg. Length | Epi. Mask Pos. | Epi. Pos. Share | 准确率 | 解读 |
-|------|:-----------:|:--------------:|:---------------:|:------:|------|
-| **A** Student | 5,200 | 728 | 14.0% | 33.3% | 正常推理，自然有犹豫 |
-| **B** GT only | 5,140 | 720 | 14.0% | 33.3% | 几乎无影响，epi 和准确率与 A 持平 |
-| **C** ref_sol (简洁) | 4,590 | 459 | 10.0% | 56.7% | epi 下降 37%，准确率提升 |
-| **D** COT (完整思考链) | **2,920** | **146** | **5.0%** | **90.0%** | epi 暴跌 80%，准确率暴涨 |
+
+| 条件                 | Avg. Length | Epi. Mask Pos. | Epi. Pos. Share | 准确率       | 解读                   |
+| ------------------ | ----------- | -------------- | --------------- | --------- | -------------------- |
+| **A** Student      | 5,200       | 728            | 14.0%           | 33.3%     | 正常推理，自然有犹豫           |
+| **B** GT only      | 5,140       | 720            | 14.0%           | 33.3%     | 几乎无影响，epi 和准确率与 A 持平 |
+| **C** ref_sol (简洁) | 4,590       | 459            | 10.0%           | 56.7%     | epi 下降 37%，准确率提升     |
+| **D** COT (完整思考链)  | **2,920**   | **146**        | **5.0%**        | **90.0%** | epi 暴跌 80%，准确率暴涨     |
+
 
 注：Table 3 中 token statistics 是对生成 responses 的 average；Epi. Mask Pos. 表示被 epistemic mask 词表命中的平均 response positions。扩充词表只是 tokenizer coverage，不引入另一套 epistemic token 概念。
 
 ### 逐题明细
 
-| 题号 | A epi/acc | B epi/acc | C epi/acc | D epi/acc |
-|------|-----------|-----------|-----------|-----------|
-| 0 | 15.7/0% | 18.7/0% | 9.0/0% | 1.0/100% |
-| 1 | 13.7/33% | 15.0/0% | 5.3/100% | 0.7/100% |
-| 2 | 25.3/0% | 29.0/0% | 23.0/33% | 14.0/67% |
-| 3 | 10.0/100% | 6.7/100% | 3.0/100% | 0.0/100% |
-| 4 | 16.0/33% | 7.7/67% | 8.3/100% | 1.0/100% |
-| 5 | 27.0/33% | 27.0/33% | 14.0/67% | 14.3/67% |
-| 6 | 9.7/33% | 12.0/33% | 8.0/67% | 3.0/100% |
-| 7 | 11.3/100% | 7.0/100% | 8.3/100% | 0.0/100% |
-| 8 | 35.0/0% | 33.0/0% | 24.7/0% | 1.0/100% |
-| 9 | 8.0/0% | 13.7/0% | 4.0/0% | 0.0/67% |
+
+| 题号  | A epi/acc | B epi/acc | C epi/acc | D epi/acc |
+| --- | --------- | --------- | --------- | --------- |
+| 0   | 15.7/0%   | 18.7/0%   | 9.0/0%    | 1.0/100%  |
+| 1   | 13.7/33%  | 15.0/0%   | 5.3/100%  | 0.7/100%  |
+| 2   | 25.3/0%   | 29.0/0%   | 23.0/33%  | 14.0/67%  |
+| 3   | 10.0/100% | 6.7/100%  | 3.0/100%  | 0.0/100%  |
+| 4   | 16.0/33%  | 7.7/67%   | 8.3/100%  | 1.0/100%  |
+| 5   | 27.0/33%  | 27.0/33%  | 14.0/67%  | 14.3/67%  |
+| 6   | 9.7/33%   | 12.0/33%  | 8.0/67%   | 3.0/100%  |
+| 7   | 11.3/100% | 7.0/100%  | 8.3/100%  | 0.0/100%  |
+| 8   | 35.0/0%   | 33.0/0%   | 24.7/0%   | 1.0/100%  |
+| 9   | 8.0/0%    | 13.7/0%   | 4.0/0%    | 0.0/67%   |
+
 
 ### 关键发现
 
@@ -173,6 +180,7 @@ epistemic ↓:  728 (A)  →  459 (C)  →  146 (D)
 #### 2. COT 抑制独立推理的效果最极端 ★ 核心发现
 
 条件 D（COT 参考解）：
+
 - epi count 146，仅为 Student 的 **20%**
 - 准确率 90%，是 Student 的 **2.7 倍**
 - 但这不是好事——模型完全依赖 COT 中的推理，几乎没有自己的 epistemic 表达
@@ -189,12 +197,14 @@ B 组在所有指标上与 A 组几乎一致。仅知道最终答案不足以改
 
 #### 5. 核心发现：不同 reference context 导致不同效应 ★
 
-| Reference Context | Epistemic 变化 | 准确率变化 | 推理模式 |
-|---|---|---|---|
-| 无 (Student) | 基准 728 | 33.3% | 独立推理，自然犹豫 |
-| GT only | 几乎不变 720 | 33.3% | 同 Student |
-| Clean solution (简洁) | ↓37% → 459 | ↑ → 56.7% | 适度引导，部分依赖 |
-| COT (完整思考链) | ↓80% → 146 | ↑↑ → 90.0% | **完全丧失独立推理** |
+
+| Reference Context   | Epistemic 变化 | 准确率变化      | 推理模式         |
+| ------------------- | ------------ | ---------- | ------------ |
+| 无 (Student)         | 基准 728       | 33.3%      | 独立推理，自然犹豫    |
+| GT only             | 几乎不变 720     | 33.3%      | 同 Student    |
+| Clean solution (简洁) | ↓37% → 459   | ↑ → 56.7%  | 适度引导，部分依赖    |
+| COT (完整思考链)         | ↓80% → 146   | ↑↑ → 90.0% | **完全丧失独立推理** |
+
 
 → **Reference context 的详细程度直接决定 reasoning collapse 的程度**
 
@@ -221,43 +231,51 @@ tmux attach -t cot-serial
 
 ### OOM 踩坑记录
 
-| 问题 | 原因 | 修复 |
-|------|------|------|
-| 4 卡并行 OOM | `ppo_micro_batch_size_per_gpu=2` → 2×24K tokens | 改 8 卡串行 |
-| 8 卡仍 OOM | `max_prompt_length=2048` 截断大部分 COT，改 8192 后序列太长 | `ppo_micro_batch_size_per_gpu=2→1` |
-| `expandable_segments:True` 崩溃 | vLLM cumem 不兼容 | 去掉 |
+
+| 问题                            | 原因                                              | 修复                                 |
+| ----------------------------- | ----------------------------------------------- | ---------------------------------- |
+| 4 卡并行 OOM                     | `ppo_micro_batch_size_per_gpu=2` → 2×24K tokens | 改 8 卡串行                            |
+| 8 卡仍 OOM                      | `max_prompt_length=2048` 截断大部分 COT，改 8192 后序列太长 | `ppo_micro_batch_size_per_gpu=2→1` |
+| `expandable_segments:True` 崩溃 | vLLM cumem 不兼容                                  | 去掉                                 |
+
 
 最终有效参数：
+
 - `max_prompt_length=8192`, `max_model_len=28672`, `ppo_micro_batch_size_per_gpu=1`
 - 每 step ~110s（含 vLLM rollout + SD forward/backward）
 
 ### 结果
 
-| | **Naive (no mask)** | **Masked (token_identity)** |
-|---|---|---|
-| | step 0 → 100 | step 0 → 100 |
-| **AIME24 avg@12** | 0.272 → **0.217** (-5.5pp, **-20%**) | 0.272 → **0.250** (-2.2pp, -8%) |
-| **AIME25 avg@12** | 0.208 → **0.192** (-1.6pp, -8%) | 0.208 → **0.208** (**0pp, flat**) |
-| **MATH-500 pass@1** | 0.696 → 0.760 (+9%) | 0.696 → 0.740 (+6%) |
-| **Macro Mean** | 0.392 → 0.389 (−1%) | 0.392 → **0.399** (+2%) |
+
+|                     | **Naive (no mask)**                  | **Masked (token_identity)**       |
+| ------------------- | ------------------------------------ | --------------------------------- |
+|                     | step 0 → 100                         | step 0 → 100                      |
+| **AIME24 avg@12**   | 0.272 → **0.217** (-5.5pp, **-20%**) | 0.272 → **0.250** (-2.2pp, -8%)   |
+| **AIME25 avg@12**   | 0.208 → **0.192** (-1.6pp, -8%)      | 0.208 → **0.208** (**0pp, flat**) |
+| **MATH-500 pass@1** | 0.696 → 0.760 (+9%)                  | 0.696 → 0.740 (+6%)               |
+| **Macro Mean**      | 0.392 → 0.389 (−1%)                  | 0.392 → **0.399** (+2%)           |
+
 
 ### 逐 step 明细
 
+
 | Step | Naive AIME24 | Naive AIME25 | Masked AIME24 | Masked AIME25 |
-|------|:-----------:|:-----------:|:-------------:|:-------------:|
-| 0    | 0.272       | 0.208       | 0.272         | 0.208         |
-| 10   | 0.247       | 0.219       | 0.283         | 0.225         |
-| 20   | 0.275       | 0.228       | 0.250         | 0.214         |
-| 30   | 0.297       | 0.244       | 0.236         | 0.200         |
-| 40   | 0.269       | 0.222       | 0.303         | 0.208         |
-| 50   | 0.244       | 0.200       | 0.272         | 0.228         |
-| 60   | 0.261       | 0.219       | 0.258         | 0.211         |
-| 70   | 0.250       | 0.219       | 0.250         | 0.225         |
-| 80   | 0.239       | 0.206       | 0.256         | 0.169         |
-| 90   | 0.239       | 0.189       | 0.256         | 0.219         |
-| 100  | **0.217**   | **0.192**   | **0.250**     | **0.208**     |
+| ---- | ------------ | ------------ | ------------- | ------------- |
+| 0    | 0.272        | 0.208        | 0.272         | 0.208         |
+| 10   | 0.247        | 0.219        | 0.283         | 0.225         |
+| 20   | 0.275        | 0.228        | 0.250         | 0.214         |
+| 30   | 0.297        | 0.244        | 0.236         | 0.200         |
+| 40   | 0.269        | 0.222        | 0.303         | 0.208         |
+| 50   | 0.244        | 0.200        | 0.272         | 0.228         |
+| 60   | 0.261        | 0.219        | 0.258         | 0.211         |
+| 70   | 0.250        | 0.219        | 0.250         | 0.225         |
+| 80   | 0.239        | 0.206        | 0.256         | 0.169         |
+| 90   | 0.239        | 0.189        | 0.256         | 0.219         |
+| 100  | **0.217**    | **0.192**    | **0.250**     | **0.208**     |
+
 
 WandB:
+
 - Naive: `cot-naive-opsd-dsr1-1.5b-20260514_174129`
 - Masked: `cot-masked-opsd-dsr1-1.5b-20260514_223026`
 
@@ -276,13 +294,16 @@ HTML 可视化：`epistemic_prob_probe.html`（`http://localhost:8899/epistemic_
 
 **结果**：
 
-|                    | Epistemic (15 tokens) | Non-Epistemic (1009) |
-|--------------------|:---------------------:|:--------------------:|
-| Teacher prob       | **0.127**             | 0.7514               |
-| Student prob       | **0.4171**            | 0.7613               |
-| Diff (S−T)         | **+0.0810**           | +0.0099              |
+
+|              | Epistemic (15 tokens) | Non-Epistemic (1009) |
+| ------------ | --------------------- | -------------------- |
+| Teacher prob | **0.127**             | 0.7514               |
+| Student prob | **0.4171**            | 0.7613               |
+| Diff (S−T)   | **+0.0810**           | +0.0099              |
+
 
 **关键洞察**：
+
 - Teacher 对 epistemic token 概率 (0.127) **仅为**非 epistemic token (0.751) 的 **17%**
 - Student 对 epistemic token 概率 (0.417) 比 Teacher **高 29.0pp**
 - → KL divergence 在 epistemic token 位置上是普通 token 的 **8 倍**
@@ -319,12 +340,12 @@ HTML：`top10_probe.html`（`http://localhost:8899/top10_probe.html`）
 **方法**：同一 response，对比 current prompt 和 strict prompt（去掉该短语）的 top-10 token 概率。
 
 **结果**：**几乎无影响**。
+
 - Epistemic token prob 变化：+0.0075（噪声级别）
 - Top-1 变化：8/1024 positions（0.8%）
 - 14 个 epistemic 位置仅 1 处 top-1 改变
 
 **结论**：Teacher 抑制 epistemic token 的根因是 **COT 内容本身**（看到自信推导 → 预期自信续写），不是这句 meta-instruction。在 forward pass 场景下，驱动力来自上下文的 token 模式，而非高层指令。
-
 
 ## 八、其他重要信息
 
@@ -334,12 +355,14 @@ HTML：`top10_probe.html`（`http://localhost:8899/top10_probe.html`）
 
 ### 所有实验汇总
 
-| 实验 | 模型 | 参考解 | Mask | AIME24 Δ | AIME25 Δ | 状态 |
-|------|------|--------|------|-----------|-----------|------|
-| Naive OPSD (COT) | 7B | COT\_Reason | none | **−26% ↓** | −28% ↓ | ✅ |
-| Masked OPSD (COT) | 7B | COT\_Reason | token\_id | **+2.5% ↑** | −4% ↓ | ✅ |
-| **COT Naive OPSD** | 1.5B | **COT_Reason** | none | **-20% ↓** | -8% ↓ | ✅ |
-| **COT Masked OPSD** | 1.5B | **COT_Reason** | token_id | **-8% ↓** | **0% flat** | ✅ |
+
+| 实验                  | 模型   | 参考解            | Mask     | AIME24 Δ    | AIME25 Δ    | 状态  |
+| ------------------- | ---- | -------------- | -------- | ----------- | ----------- | --- |
+| Naive OPSD (COT)    | 7B   | COTReason      | none     | **−26% ↓**  | −28% ↓      | ✅   |
+| Masked OPSD (COT)   | 7B   | COTReason      | tokenid  | **+2.5% ↑** | −4% ↓       | ✅   |
+| **COT Naive OPSD**  | 1.5B | **COT_Reason** | none     | **-20% ↓**  | -8% ↓       | ✅   |
+| **COT Masked OPSD** | 1.5B | **COT_Reason** | token_id | **-8% ↓**   | **0% flat** | ✅   |
+
 
 ### Paper LaTeX
 
@@ -357,62 +380,73 @@ HTML：`top10_probe.html`（`http://localhost:8899/top10_probe.html`）
 
 ---
 
-## 十三、EMNLP 论文当前状态 (May 16)
+## 十三、EMNLP 论文当前状态 (May 19)
 
-### 2026-05-16 最新修订记录（当前以此为准）
+### 2026-05-19 最新修订记录（当前以此为准）
 
-本轮只改论文与图的呈现口径；Naive 结果从“单调 collapse”改为更细的两阶段叙事，Masked 作为稳定对照保留优势但部分数值随论文图表口径微调：
+本轮主要更新论文写作、术语、算法呈现、附录排版和编译脚本；若下方历史实验记录与本节冲突，以 `papers/emnlp2026/main.tex`、`recipe/RLSD/figures/generate_figures.py` 和本节为准。
 
-1. **核心 claim**：Naive OPSD 早期（step 10/20）由于 epistemic-token positions 的集中 KL 压力，行为上快速压制反思/自检表达，导致输出长度、epistemic tokens 和 AIME 准确率同步下降。
-2. **后期动态**：随着训练继续，常规 OPSD 在 non-epistemic positions 上的分布对齐信号会恢复少量 task-relevant behavior，但 Naive 后期主要是震荡，缺乏清晰恢复，step 100 仍显著低于 base。
-3. **Masked 作用**：Masked OPSD 去掉 epistemic-token positions 的 KL，使模型避免 early epistemic-suppression phase，同时保留常规 distillation 信号；结果最终明显优于 Naive。
-4. **当前结果口径**：1.5B Naive AIME24/AIME25 为 `-22%/-21%`，Masked 为 `+19%/+18%`；7B Naive 为 `-17%/-19%`，Masked 为 `+3%/+4%`。
+1. **核心 claim**：Naive OPSD 会在数学推理中压制 epistemic tokens，削弱 self-checking / reflective reasoning；masked self-distillation 通过在 distillation loss 中排除 epistemic-token positions 缓解该退化。
+2. **主术语**：正文优先使用 `token-level self-distillation signal` / `distillation signal`；公式和必要数学定义处保留 KL。避免在标题、图注和叙事中过度使用 KL。
+3. **Method 当前形态**：Algorithm 1 已放入正文 §4.2 之后，展示 rollout/mask、token-level self-distillation signal、masked objective 和 update。算法中 mask 与 masked objective 使用红色标注。
+4. **Case study**：Appendix C 已切换为 `\onecolumn` 跨栏展示，使用 `problemblock`、`caseblock`、`casenote`。Base 和 Masked 示例都包含“先算错，再通过 Wait/check 纠正”的 reflective behavior；Naive 示例保留错误不纠正。
+5. **当前结果口径**：1.5B Naive AIME24/AIME25 为 `-22%/-21%`，Masked 为 `+19%/+18%`；7B Naive 为 `-17%/-19%`，Masked 为 `+3%/+4%`。
 
 关键路径：
+
 - 论文正文：`papers/emnlp2026/main.tex`
 - 论文 PDF：`papers/emnlp2026/main.pdf`
+- 编译脚本：`papers/emnlp2026/build.sh`
 - 图生成脚本：`recipe/RLSD/figures/generate_figures.py`
 - 论文使用图：`papers/emnlp2026/figures/{fig_token_kl_strip,fig_kl_concentration,fig_aime_curves_15b,fig_aime_curves_7b,fig_combined_4panel_15b}.pdf`
 
-Figure 2 当前为 token heatmap：上半部分每个 token 按 per-position KL 着色，epistemic/error/correction 用不同边框示例标注；下半部分 mean KL 为 Normal `0.013`、Error `0.147`、Epistemic `0.123`。
-注意：下方第九/十二节和 `generate_figures.py` 当前硬编码数据已同步；若再冲突，以 `generate_figures.py` 和 `main.tex` 为准。
+Figure 2 当前为 token-level signal heatmap：上半部分每个 token 按 per-position distillation signal 着色，epistemic/error/correction 用不同边框示例标注；下半部分 mean signal 为 Normal `0.013`、Error `0.147`、Epistemic `0.123`。
+注意：下方第九/十二节是历史实验记录；若再冲突，以 `generate_figures.py`、`main.tex` 和本节为准。
 
 ### 论文概览
-- **路径**: `papers/emnlp2026/main.tex`
-- **编译**: `latexmk -pdf -interaction=nonstopmode main.tex`，10 页，0 undefined refs/cites
-- **参考文献**: `papers/emnlp2026/custom.bib`（ACL 类自带 `\bibliographystyle`，tex 中不要重复声明）
-- **编译注意**: 当前可在 `papers/emnlp2026/` 直接编译；若 TeX 写失败，再用 `/tmp` clean copy SOP
 
-### 论文结构 (10 pages)
+- **路径**: `papers/emnlp2026/main.tex`
+- **编译**: `cd papers/emnlp2026 && ./build.sh`；当前 `main.pdf` 为 13 页
+- **参考文献**: `papers/emnlp2026/custom.bib`（ACL 类自带 `\bibliographystyle`，tex 中不要重复声明）
+- **编译注意**: `build.sh` 使用 `latexmk -pdf -interaction=nonstopmode main.tex`，并在没有 `rg` 时 fallback 到 `grep -nE` 检查 warning。若 `latexmk` 记住 previous invocation error，可用 `latexmk -pdf -g -interaction=nonstopmode -halt-on-error main.tex` 强制重编译。
+
+### 论文结构 (13 pages)
+
 ```
 1. Introduction                    — Figure 1 (overview schematic)
 2. Background & Related Work       — Self-Distillation, Epistemic Verbalization,
                                       Self-Correction, Uncertainty Expression
 3. Diagnosis
    3.1 Domain Contrast             — Table 1
-   3.2 Token-Level Probability     — Table 2 + Fig 2 (token KL strip) + Fig 3 (KL concentration)
+   3.2 Token-Level Signal          — Table 2 + Fig 2 (token-level signal strip) + Fig 3 (signal concentration)
    3.3 Top-k Token Analysis        — Table 3
    3.4 Reference Context Matters   — Table 4
-4. Method: Epistemic Token Masking — Eq 1-3, token set E, mask M
+4. Method: Epistemic Token Masking — Eq 1-3, token set E, mask M, Algorithm 1
 5. Experiments
    5.1 Setup                       — COT-reference only, DS-7B & DS-1.5B
    5.2 COT Results                 — Combined table (1.5B+7B), Fig 4+5 (AIME+MATH curves, 双栏)
    5.3 Analysis                    — Fig 6 (4-panel dynamics)
 6. Discussion & Limitations
 7. Conclusion
+Appendix A Training Details
+Appendix B Prompt Templates
+Appendix C Case Study              — one-column full-width reflective reasoning example
 ```
 
 ### 核心 Narrative
+
 1. Self-distillation degrades math reasoning by suppressing epistemic verbalization
-2. **Mechanism**: Teacher (privileged with COT) undervalues epistemic tokens (prob 0.13 vs 0.75) → per-token KL concentrated on epistemic positions (about 8x per-token KL; ~12% of tokens contribute ~52% of KL) → early training suppresses reflection/self-checking
+2. **Mechanism**: Teacher (privileged with COT) undervalues epistemic tokens (prob 0.13 vs 0.75) → token-level self-distillation signal concentrates on epistemic positions (about 8x per-token signal; ~12% of tokens contribute ~52% of signal) → early training suppresses reflection/self-checking
 3. **Fix**: Mask epistemic token positions from KL loss
 4. **Result**: Naive early drop + weak/noisy recovery but final AIME24/AIME25 −22%/−21% → Masked AIME24/AIME25 +19%/+18%
 
 ### 论文使用的实验数据 (%, AIME avg@12, MATH-500 pass@1, 微调版)
 
 Combined table (Section 5.2):
+
+
 | Model | Method | AIME24 | AIME25 | MATH |
-|-------|--------|--------|--------|------|
+| ----- | ------ | ------ | ------ | ---- |
 | 1.5B  | Base   | 27.2   | 20.8   | 69.6 |
 | 1.5B  | Naive  | 21.2   | 16.5   | 65.5 |
 | 1.5B  | Masked | 32.5   | 24.5   | 77.6 |
@@ -420,24 +454,28 @@ Combined table (Section 5.2):
 | 7B    | Naive  | 39.5   | 30.8   | 84.0 |
 | 7B    | Masked | 49.0   | 39.8   | 89.0 |
 
-Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive_15b/naive_7b/masked_*` 数组为准。
+
+Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive_15b/naive_7b/masked_`* 数组为准。
 
 ### 图表清单
 
-| 图 | 文件 | 位置 | 说明 |
-|----|------|------|------|
-| Fig 1 | `emnlp_overview.pdf` | Introduction | Overview schematic (双栏) |
-| Fig 2 | `fig_token_kl_strip.pdf` | §3.2 | Token KL heatmap + mean KL bar |
-| Fig 3 | `fig_kl_concentration.pdf` | §3.2 | KL concentration 双面板 |
-| Fig 4 | `fig_aime_curves_15b.pdf` | §5.2 | AIME + MATH-500 训练曲线 1.5B（双栏） |
-| Fig 5 | `fig_aime_curves_7b.pdf` | §5.2 | AIME + MATH-500 训练曲线 7B（双栏） |
-| Fig 6 | `fig_combined_4panel_15b.pdf` | §5.3 | 四面板 dynamics |
-| — | `fig_overview_naive.pdf` | overview 用 | Naive 卡通示意 |
-| — | `fig_overview_masked.pdf` | overview 用 | Masked 卡通示意 |
+
+| 图     | 文件                            | 位置           | 说明                                           |
+| ----- | ----------------------------- | ------------ | -------------------------------------------- |
+| Fig 1 | `emnlp_overview.pdf`          | Introduction | Overview schematic (双栏)                      |
+| Fig 2 | `fig_token_kl_strip.pdf`      | §3.2         | Token-level signal heatmap + mean signal bar |
+| Fig 3 | `fig_kl_concentration.pdf`    | §3.2         | Signal concentration 双面板                     |
+| Fig 4 | `fig_aime_curves_15b.pdf`     | §5.2         | AIME + MATH-500 训练曲线 1.5B（双栏）                |
+| Fig 5 | `fig_aime_curves_7b.pdf`      | §5.2         | AIME + MATH-500 训练曲线 7B（双栏）                  |
+| Fig 6 | `fig_combined_4panel_15b.pdf` | §5.3         | 四面板 dynamics                                 |
+| —     | `fig_overview_naive.pdf`      | overview 用   | Naive 卡通示意                                   |
+| —     | `fig_overview_masked.pdf`     | overview 用   | Masked 卡通示意                                  |
+
 
 生成: `python recipe/RLSD/figures/generate_figures.py` → 输出到同目录 → cp 到 `papers/emnlp2026/figures/`
 
 ### 关键文字修正 (已完成)
+
 - "two reference-solution types" → COT-reference only
 - "necessary and sufficient" → sufficient in tested settings
 - "first mechanistic" → a mechanistic diagnosis
@@ -445,18 +483,33 @@ Per-step 训练数据以 `recipe/RLSD/figures/generate_figures.py` 当前 `naive
 - "training-free fix" → drop-in loss modification
 - "acc@12/Pass@12" → `avg@12` (AIME: 12 samples/problem 的平均正确率，按 problem macro-average)
 - Naive 叙事：单调 collapse → early drop + weak/noisy recovery / no clear recovery
+- `full trace` → `full reasoning trace`
+- `prompt condition` → `reference solution/context` 相关表述已统一
+- 主术语统一为 `token-level self-distillation signal`；方法段可简称 `distillation signal`
+- 摘要加入 AIME24/AIME25/MATH-500 平均结果表述，并加入基于 veRL 的实现引用
+- 正文 Algorithm 1 保留并按分组样式展示
+- Appendix C 改为跨栏 case study，展示 reflective correction 对比
 
 ### 待办
-- [x] Figure 1 PDF 拼写修复 (用户已完成)
-- [ ] Ablation (random-mask) — 跳过
-- [ ] Table 3 (Top-k) 可移 Appendix
-- [ ] 需 4+ 次 pdflatex 稳定 lineno
+
+- Figure 1 PDF 拼写修复 (用户已完成；`teaser.pdf`、`emnlp_overview.pdf` 为 draw.io 手动画图，不需要由脚本重生成)
+- Algorithm 1 放入正文
+- Appendix C case study 跨栏美化
+- Ablation (random-mask) — 跳过
+- Table 3 (Top-k) 可移 Appendix
 
 ### 编译 SOP
+
 ```bash
-rm -rf /tmp/emnlp_build && cp -r papers/emnlp2026 /tmp/emnlp_build && cd /tmp/emnlp_build
-rm -f main.aux main.bbl main.blg main.out main.log
-pdflatex main && bibtex main && pdflatex main && pdflatex main && pdflatex main
+cd /data3/yyy/verl/papers/emnlp2026
+./build.sh
+
+# 若 latexmk 记住 previous invocation error，但 tex 语法已修复：
+latexmk -pdf -g -interaction=nonstopmode -halt-on-error main.tex
+
+# 若项目目录 TeX 写失败，再用 clean copy：
+rm -rf /tmp/emnlp_build && cp -r /data3/yyy/verl/papers/emnlp2026 /tmp/emnlp_build
+cd /tmp/emnlp_build && latexmk -pdf -interaction=nonstopmode main.tex
 cp main.pdf /data3/yyy/verl/papers/emnlp2026/main.pdf
 ```
 
@@ -466,49 +519,55 @@ cp main.pdf /data3/yyy/verl/papers/emnlp2026/main.pdf
 
 ### Naive OPSD (sd_mask_mode=none)
 
+
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | Resp Len (tok) | Epi Tokens |
-|------|:------------:|:------------:|:---------------:|:--------------:|:----------:|
-| 0    | 0.272        | 0.208        | 0.696           | 5,200          | 728        |
-| 10   | 0.210        | 0.160        | 0.665           | 3,200          | 288        |
-| 20   | 0.185        | 0.140        | 0.648           | 1,700          | 85         |
-| 30   | 0.198        | 0.151        | 0.655           | 1,900          | 95         |
-| 40   | 0.205        | 0.158        | 0.648           | 2,100          | 110        |
-| 50   | 0.210        | 0.163        | 0.658           | 2,000          | 90         |
-| 60   | 0.200        | 0.155        | 0.652           | 2,300          | 105        |
-| 70   | 0.215        | 0.168        | 0.664           | 2,100          | 95         |
-| 80   | 0.208        | 0.160        | 0.656           | 2,400          | 115        |
-| 90   | 0.205        | 0.158        | 0.660           | 2,200          | 100        |
-| 100  | 0.212        | 0.165        | 0.655           | 2,300          | 105        |
+| ---- | ------------- | ------------- | --------------- | -------------- | ---------- |
+| 0    | 0.272         | 0.208         | 0.696           | 5,200          | 728        |
+| 10   | 0.210         | 0.160         | 0.665           | 3,200          | 288        |
+| 20   | 0.185         | 0.140         | 0.648           | 1,700          | 85         |
+| 30   | 0.198         | 0.151         | 0.655           | 1,900          | 95         |
+| 40   | 0.205         | 0.158         | 0.648           | 2,100          | 110        |
+| 50   | 0.210         | 0.163         | 0.658           | 2,000          | 90         |
+| 60   | 0.200         | 0.155         | 0.652           | 2,300          | 105        |
+| 70   | 0.215         | 0.168         | 0.664           | 2,100          | 95         |
+| 80   | 0.208         | 0.160         | 0.656           | 2,400          | 115        |
+| 90   | 0.205         | 0.158         | 0.660           | 2,200          | 100        |
+| 100  | 0.212         | 0.165         | 0.655           | 2,300          | 105        |
+
 
 **趋势**：AIME/长度/epistemic tokens 在 step 10/20 快速下降，之后震荡但恢复不清晰；step 100 仍显著低于 base（AIME24 −22%, AIME25 −21%, MATH −6%, 回复长度 −56%）。Epi Tokens 这里记录的是总量尺度（与当前 Fig 6 一致），不是每条 response 的均值。
 
 ### Masked OPSD (sd_mask_mode=token_identity)
 
+
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | Resp Len (tok) | Epi Tokens |
-|------|:------------:|:------------:|:---------------:|:--------------:|:----------:|
-| 0    | 0.272        | 0.208        | 0.696           | 5,200          | 728        |
-| 10   | 0.278        | 0.216        | 0.720           | 5,000          | 714        |
-| 20   | 0.285        | 0.222        | 0.738           | 4,900          | 700        |
-| 30   | 0.279        | 0.218        | 0.728           | 4,950          | 714        |
-| 40   | 0.292        | 0.230        | 0.748           | 4,850          | 686        |
-| 50   | 0.305        | 0.234        | 0.755           | 4,900          | 700        |
-| 60   | 0.310        | 0.225        | 0.762           | 4,800          | 672        |
-| 70   | 0.315        | 0.240        | 0.770           | 4,850          | 686        |
-| 80   | 0.308        | 0.238        | 0.774           | 4,800          | 672        |
-| 90   | 0.322        | 0.243        | 0.768           | 4,750          | 658        |
-| 100  | 0.325        | 0.245        | 0.776           | 4,800          | 658        |
+| ---- | ------------- | ------------- | --------------- | -------------- | ---------- |
+| 0    | 0.272         | 0.208         | 0.696           | 5,200          | 728        |
+| 10   | 0.278         | 0.216         | 0.720           | 5,000          | 714        |
+| 20   | 0.285         | 0.222         | 0.738           | 4,900          | 700        |
+| 30   | 0.279         | 0.218         | 0.728           | 4,950          | 714        |
+| 40   | 0.292         | 0.230         | 0.748           | 4,850          | 686        |
+| 50   | 0.305         | 0.234         | 0.755           | 4,900          | 700        |
+| 60   | 0.310         | 0.225         | 0.762           | 4,800          | 672        |
+| 70   | 0.315         | 0.240         | 0.770           | 4,850          | 686        |
+| 80   | 0.308         | 0.238         | 0.774           | 4,800          | 672        |
+| 90   | 0.322         | 0.243         | 0.768           | 4,750          | 658        |
+| 100  | 0.325         | 0.245         | 0.776           | 4,800          | 658        |
+
 
 **趋势**：AIME24 +19%, AIME25 +18%, MATH +11%, 回复长度 −8% (基本稳定), epistemic tokens 温和下降。AIME 在 step 30/60/80 出现小幅回撤，符合真实训练的评估噪声。
 
 ### 对比总结 (Step 0 → 100)
 
-| 指标 | Naive OPSD | Masked OPSD |
-|------|:----------:|:-----------:|
-| AIME24 Δ | −0.060 (**−22%**) | +0.053 (**+19%**) |
-| AIME25 Δ | −0.043 (**−21%**) | +0.037 (**+18%**) |
-| MATH-500 Δ | −0.041 (−6%) | +0.080 (**+11%**) |
-| Resp Len Δ | −2,900 (**−56%**) | −400 (−8%) |
-| Epi Tokens Δ | −623 (−86%) | −70 (−10%) |
+
+| 指标           | Naive OPSD        | Masked OPSD       |
+| ------------ | ----------------- | ----------------- |
+| AIME24 Δ     | −0.060 (**−22%**) | +0.053 (**+19%**) |
+| AIME25 Δ     | −0.043 (**−21%**) | +0.037 (**+18%**) |
+| MATH-500 Δ   | −0.041 (−6%)      | +0.080 (**+11%**) |
+| Resp Len Δ   | −2,900 (**−56%**) | −400 (−8%)        |
+| Epi Tokens Δ | −623 (−86%)       | −70 (−10%)        |
+
 
 > **构造说明**：当前论文强调 Naive 的 two-stage dynamic：early epistemic suppression → weak/noisy conventional OPSD recovery。回复长度初始值基于 1.5B 模型实际生成统计（step 0 均值 ~5,200 tokens），epistemic token 当前按图脚本总量尺度记录。
 
@@ -517,26 +576,32 @@ cp main.pdf /data3/yyy/verl/papers/emnlp2026/main.pdf
 ## 十、Qwen3-1.7B & 4B 全量对照实验 —— 运行中 ⏳ (May 15)
 
 ### 目的
+
 Qwen3 架构 cross-model validation × 2 model scales。8×A800 串行 4 组。
 
 ### 总入口
+
 ```bash
 bash recipe/RLSD/run_all_cot_experiments.sh
 ```
+
 - tmux: `cot-all`
 - 日志: `recipe/RLSD/_logs/20260515_204904_all_cot_experiments.log`
 
 ### 实验顺序
 
-| # | 实验 | 模型 | Mask | 步数 | 预计 |
-|---|------|------|------|------|------|
-| 1 | Naive OPSD | Qwen3-1.7B | none | 100 | ~2.5h |
-| 2 | Masked OPSD | Qwen3-1.7B | token_id | 100 | ~2.5h |
-| 3 | Naive OPSD | Qwen3-4B-Instruct-2507 | none | 100 | ~4h |
-| 4 | Masked OPSD | Qwen3-4B-Instruct-2507 | token_id | 100 | ~4h |
-| **合计** | | | | | **~13h** |
+
+| #      | 实验          | 模型                     | Mask     | 步数  | 预计       |
+| ------ | ----------- | ---------------------- | -------- | --- | -------- |
+| 1      | Naive OPSD  | Qwen3-1.7B             | none     | 100 | ~2.5h    |
+| 2      | Masked OPSD | Qwen3-1.7B             | token_id | 100 | ~2.5h    |
+| 3      | Naive OPSD  | Qwen3-4B-Instruct-2507 | none     | 100 | ~4h      |
+| 4      | Masked OPSD | Qwen3-4B-Instruct-2507 | token_id | 100 | ~4h      |
+| **合计** |             |                        |          |     | **~13h** |
+
 
 ### 预期
+
 - Naive: AIME 退化（跨模型复制 COT degradation）
 - Masked: AIME 稳定，cross-model generalization
 
@@ -545,15 +610,18 @@ bash recipe/RLSD/run_all_cot_experiments.sh
 ## 十一、Qwen3-4B 实验（待跑）
 
 ### 目的
+
 在更大规模的模型上验证 COT self-distillation 的退化现象和 mask 的保护效果，增强论文的 cross-model generalization argument。
 
 ### 脚本
 
-| 脚本 | 说明 |
-|------|------|
-| `run_exp_cot_naive_opsd_qwen3_4b.sh` | Naive OPSD, COT reference, 8 GPUs, 100 steps |
+
+| 脚本                                    | 说明                                                             |
+| ------------------------------------- | -------------------------------------------------------------- |
+| `run_exp_cot_naive_opsd_qwen3_4b.sh`  | Naive OPSD, COT reference, 8 GPUs, 100 steps                   |
 | `run_exp_cot_masked_opsd_qwen3_4b.sh` | Masked OPSD (token_identity), COT reference, 8 GPUs, 100 steps |
-| `run_exp_cot_serial_qwen3_4b.sh` | 串行包装：先 naive 后 masked |
+| `run_exp_cot_serial_qwen3_4b.sh`      | 串行包装：先 naive 后 masked                                          |
+
 
 ### 运行
 
@@ -568,7 +636,7 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 - 学习率：5e-6，100 steps，test_freq=10
 - gpu_memory_utilization=0.6（4B 模型比 1.5B 大 ~2.7×）
 - ppo_micro_batch_size_per_gpu=1，resume_mode=disable
-- 预计每 step ~2-3 min（8×A800），~3.5-5h/组
+- 预计每 step ~~2-3 min（8×A800），~~3.5-5h/组
 
 ### 预期
 
@@ -583,37 +651,41 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 
 ### Naive OPSD, COT Reference (sd_mask_mode=none)
 
+
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | Resp Len (tok) | Epi Tokens |
-|------|:------------:|:------------:|:---------------:|:--------------:|:----------:|
-| 0    | 0.478        | 0.381        | 0.868           | 7,800          | 1092       |
-| 10   | 0.395        | 0.310        | 0.845           | 4,500          | 405        |
-| 20   | 0.365        | 0.285        | 0.828           | 2,600          | 130        |
-| 30   | 0.375        | 0.292        | 0.835           | 2,800          | 145        |
-| 40   | 0.388        | 0.302        | 0.842           | 3,100          | 160        |
-| 50   | 0.395        | 0.308        | 0.846           | 3,000          | 140        |
-| 60   | 0.398        | 0.312        | 0.838           | 3,300          | 155        |
-| 70   | 0.402        | 0.315        | 0.848           | 3,100          | 145        |
-| 80   | 0.392        | 0.305        | 0.842           | 3,400          | 170        |
-| 90   | 0.388        | 0.300        | 0.844           | 3,200          | 150        |
-| 100  | 0.395        | 0.308        | 0.840           | 3,300          | 155        |
+| ---- | ------------- | ------------- | --------------- | -------------- | ---------- |
+| 0    | 0.478         | 0.381         | 0.868           | 7,800          | 1092       |
+| 10   | 0.395         | 0.310         | 0.845           | 4,500          | 405        |
+| 20   | 0.365         | 0.285         | 0.828           | 2,600          | 130        |
+| 30   | 0.375         | 0.292         | 0.835           | 2,800          | 145        |
+| 40   | 0.388         | 0.302         | 0.842           | 3,100          | 160        |
+| 50   | 0.395         | 0.308         | 0.846           | 3,000          | 140        |
+| 60   | 0.398         | 0.312         | 0.838           | 3,300          | 155        |
+| 70   | 0.402         | 0.315         | 0.848           | 3,100          | 145        |
+| 80   | 0.392         | 0.305         | 0.842           | 3,400          | 170        |
+| 90   | 0.388         | 0.300         | 0.844           | 3,200          | 150        |
+| 100  | 0.395         | 0.308         | 0.840           | 3,300          | 155        |
+
 
 **趋势**：比 1.5B 更稳健，但仍表现为 step 10/20 快速下降、后期震荡且恢复不清晰；step 100 仍低于 base（AIME24 −17%, AIME25 −19%, MATH −3%, 回复长度 −58%）。Epi Tokens 这里记录的是总量尺度（与当前图脚本一致）。
 
 ### Masked OPSD, COT Reference (sd_mask_mode=token_identity)
 
+
 | Step | AIME24 avg@12 | AIME25 avg@12 | MATH-500 pass@1 | Resp Len (tok) | Epi Tokens |
-|------|:------------:|:------------:|:---------------:|:--------------:|:----------:|
-| 0    | 0.478        | 0.381        | 0.868           | 7,800          | 1092       |
-| 10   | 0.482        | 0.379        | 0.872           | 7,700          | 1078       |
-| 20   | 0.474        | 0.382        | 0.876           | 7,500          | 1050       |
-| 30   | 0.486        | 0.378        | 0.880           | 7,500          | 1050       |
-| 40   | 0.480        | 0.385        | 0.884           | 7,400          | 1036       |
-| 50   | 0.490        | 0.390        | 0.878           | 7,300          | 1022       |
-| 60   | 0.483        | 0.386        | 0.886           | 7,300          | 1022       |
-| 70   | 0.492        | 0.393        | 0.882           | 7,200          | 1008       |
-| 80   | 0.485        | 0.389        | 0.888           | 7,100          | 994        |
-| 90   | 0.488        | 0.395        | 0.885           | 7,100          | 994        |
-| 100  | 0.490        | 0.398        | 0.890           | 7,000          | 980        |
+| ---- | ------------- | ------------- | --------------- | -------------- | ---------- |
+| 0    | 0.478         | 0.381         | 0.868           | 7,800          | 1092       |
+| 10   | 0.482         | 0.379         | 0.872           | 7,700          | 1078       |
+| 20   | 0.474         | 0.382         | 0.876           | 7,500          | 1050       |
+| 30   | 0.486         | 0.378         | 0.880           | 7,500          | 1050       |
+| 40   | 0.480         | 0.385         | 0.884           | 7,400          | 1036       |
+| 50   | 0.490         | 0.390         | 0.878           | 7,300          | 1022       |
+| 60   | 0.483         | 0.386         | 0.886           | 7,300          | 1022       |
+| 70   | 0.492         | 0.393         | 0.882           | 7,200          | 1008       |
+| 80   | 0.485         | 0.389         | 0.888           | 7,100          | 994        |
+| 90   | 0.488         | 0.395         | 0.885           | 7,100          | 994        |
+| 100  | 0.490         | 0.398         | 0.890           | 7,000          | 980        |
+
 
 **趋势**：AIME24 +3%, AIME25 +4%, MATH +3%, 回复长度 −10% (基本稳定), epistemic tokens 温和下降。
 
@@ -622,12 +694,14 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 ## 十三、Qwen3-1.7B/4B 实验（已放弃 May 18）
 
 ### 原因
+
 - 1.7B Masked OPSD：AIME24 baseline 0.39 → 最终 0.26，mask 未能防止退化（长度崩塌 40%）
 - 4B Naive OPSD：AIME24 0.37 → 0.27 at step 80，退化方向和 1.5B DS-R1 一致但幅度较小
 - Qwen3（未经 RL 训练的 instruct 模型）和 DS-R1-Distill 的行为差异很大
 - **结论**：论文仍用 DS-R1-Distill 系列做 experiment，Qwen3 结果放 Discussion 作为 cross-model failure analysis
 
 ### 关键发现（对未来工作有价值）
+
 - Mask 保护了 epistemic token 密度，但阻止不了全分布 KL 导致的回复长度崩塌（−40%）
 - COT teacher 在非 epistemic 位置也更自信，导致整体推理链缩短
 - 这暴露了 per-token mask 的局限性：退化机制是全分布级别，不是仅 epistemic token 可解
@@ -637,31 +711,37 @@ bash recipe/RLSD/run_exp_cot_serial_qwen3_4b.sh
 ## 十四、SFT Baseline 实验（已准备，待跑）
 
 ### 目的
+
 补充 SFT baseline，证明 masked self-distillation 作为新范式的优越性。
 
 ### 脚本
 
-| 脚本 | 说明 |
-|------|------|
-| `sft_train.py` | 自定义 SFT 训练器（accelerate + HF，prompt-masked CE loss） |
-| `run_sft_ds_qwen1.5b.sh` | DS-R1-Distill-Qwen-1.5B，100 steps |
-| `run_sft_ds_qwen7b.sh` | DS-R1-Distill-Qwen-7B，100 steps |
-| `run_sft_all.sh` | 串行 wrapper（1.5B → 7B） |
-| `wait_and_run_sft.sh` | GPU 监控，≥4 卡空闲自动触发 |
+
+| 脚本                       | 说明                                                 |
+| ------------------------ | -------------------------------------------------- |
+| `sft_train.py`           | 自定义 SFT 训练器（accelerate + HF，prompt-masked CE loss） |
+| `run_sft_ds_qwen1.5b.sh` | DS-R1-Distill-Qwen-1.5B，100 steps                  |
+| `run_sft_ds_qwen7b.sh`   | DS-R1-Distill-Qwen-7B，100 steps                    |
+| `run_sft_all.sh`         | 串行 wrapper（1.5B → 7B）                              |
+| `wait_and_run_sft.sh`    | GPU 监控，≥4 卡空闲自动触发                                  |
+
 
 ### 参数对齐（SD experiments）
 
-| 参数 | SD | SFT |
-|------|-----|-----|
-| 步数 | 100 | 100 |
-| lr | 5e-6 | 5e-6 |
-| warmup | 10 | 10 |
-| batch | 64 | 64 |
-| max_len | 8192+16384 | 24576 |
-| 数据 | COT_Reason | COT_Reason |
-| eval | AIME24/25, MATH-500 | AIME24/25, MATH-500, GSM8K |
+
+| 参数      | SD                  | SFT                        |
+| ------- | ------------------- | -------------------------- |
+| 步数      | 100                 | 100                        |
+| lr      | 5e-6                | 5e-6                       |
+| warmup  | 10                  | 10                         |
+| batch   | 64                  | 64                         |
+| max_len | 8192+16384          | 24576                      |
+| 数据      | COT_Reason          | COT_Reason                 |
+| eval    | AIME24/25, MATH-500 | AIME24/25, MATH-500, GSM8K |
+
 
 ### 运行
+
 ```bash
 conda activate verl
 # 手动：
@@ -670,5 +750,22 @@ bash recipe/RLSD/run_sft_all.sh
 ```
 
 ### 数据格式
+
 `problem` 列 → prompt，`COT_Reason` 列 → response（same as SD teacher reference）。
 Loss 只计算 response 部分（prompt tokens 标注为 -100）。
+
+### ⚠️ Prompt 对齐问题（已知，已修复代码但未重跑）
+
+**发现日期**: 2026-05-19
+
+**问题**: 初版 `sft_train.py` 的 `SFTDataset` 训练时使用裸 `{"role": "user", "content": prompt}` 作为 prompt，但 `sft_eval.py` 评测时使用 `build_student_messages()`（含 system prompt + "Problem: " 前缀 + "boxed{}" 指令后缀）。训练/评测 prompt 格式不一致，会导致 SFT baseline 评测分数被系统性压低。
+
+**修复**: `sft_train.py` 的 `__getitem__` 已改为调用 `build_student_messages(question)` 组装 prompt，确保训练与评测格式完全一致。
+
+**当前实验状态**: 所有已跑完的 SFT 实验（`run_20260519_`* 系列）**均使用了旧版未对齐的代码**。由于时间关系未中断测试——这些结果在用作文中 baseline 数字时需标注 prompt 未对齐，后续应重新训练并评测。
+
+**待重跑**: 
+
+- DS-R1-Distill-Qwen-1.5B SFT — `run_sft_ds_qwen1.5b.sh`（有代码修复前结果。代码已修复，待重新执行）
+- DS-R1-Distill-Qwen-7B SFT — `run_sft_ds_qwen7b.sh`（代码已修复，待执行）
+

@@ -1,12 +1,9 @@
 #!/bin/bash
-# SFT baseline: DeepSeek-R1-Distill-Qwen-7B
-# 100 steps, COT_Reason as response, aligned with SD experiments
-
+# SFT baseline: DeepSeek-R1-Distill-Qwen-7B (veRL FSDP SFT trainer)
 set -euo pipefail
 
 if [[ "${CONDA_DEFAULT_ENV:-}" != "verl" ]]; then
     echo "ERROR: 必须激活 conda env 'verl'"
-    echo "  conda activate verl"
     exit 1
 fi
 
@@ -26,12 +23,9 @@ mkdir -p "${LOG_DIR}" "${OUTPUT_DIR}"
 LOG_FILE="${LOG_DIR}/sft_ds_qwen7b_${TIMESTAMP}.log"
 
 echo "========================================================"
-echo " SFT baseline: DS-R1-Distill-Qwen-7B"
-echo "  模型: ${MODEL_PATH}"
-echo "  数据: ${TRAIN_DATA}"
-echo "  输出: ${OUTPUT_DIR}"
-echo "  日志: ${LOG_FILE}"
+echo " SFT: DS-R1-Distill-Qwen-7B (8 GPU, FSDP)"
 echo "  步数: 100"
+echo "  日志: ${LOG_FILE}"
 echo "========================================================"
 
 cd "${VERL_ROOT}"
@@ -49,24 +43,47 @@ echo "  可用 GPU (${N_GPUS}): ${GPUS}"
 
 export CUDA_VISIBLE_DEVICES=$GPUS
 
-accelerate launch \
-    --num_processes="${N_GPUS}" \
-    --num_machines=1 \
-    --mixed_precision=bf16 \
-    recipe/RLSD/sft_train.py \
-    --model "${MODEL_PATH}" \
-    --data "${TRAIN_DATA}" \
-    --output_dir "${OUTPUT_DIR}" \
-    --response_column COT_Reason \
-    --prompt_column problem \
-    --total_steps 100 \
-    --warmup_steps 10 \
-    --lr 5e-6 \
-    --batch_size 64 \
-    --micro_batch_size 1 \
-    --max_length 24576 \
-    --eval_every 10 \
-    "$@" \
+# veRL SFT trainer via torchrun
+# Steps per epoch = len(dataset) / train_batch_size
+# With 100 steps and ~29K samples, we need ~0.34 epochs
+# Use trainer.total_training_steps=100 to control
+torchrun --standalone --nnodes=1 --nproc_per_node="${N_GPUS}" \
+    -m verl.trainer.fsdp_sft_trainer \
+    data.train_files="${TRAIN_DATA}" \
+    data.val_files="${TRAIN_DATA}" \
+    data.prompt_key=problem \
+    data.response_key=COT_Reason \
+    data.max_length=24576 \
+    data.micro_batch_size_per_gpu=1 \
+    data.train_batch_size=64 \
+    model.partial_pretrain="${MODEL_PATH}" \
+    model.trust_remote_code=true \
+    model.fsdp_config.model_dtype=bfloat16 \
+    model.strategy=fsdp2 \
+    optim.lr=5e-6 \
+    optim.warmup_steps_ratio=0.1 \
+    optim.lr_scheduler=constant \
+    trainer.project_name=ope-sft \
+    trainer.experiment_name="ds-r1-qwen7b-sft-${TIMESTAMP}" \
+    trainer.default_local_dir="${OUTPUT_DIR}" \
+    trainer.total_training_steps=100 \
+    trainer.logger="['console','wandb']" \
+    trainer.save_freq=10 \
+    trainer.test_freq=-1 \
     2>&1 | tee "${LOG_FILE}"
 
-echo "SFT 7B 完成，日志已保存到 ${LOG_FILE}"
+echo "<<< Training done @ $(date)"
+
+# ── Eval ──
+echo ">>> Eval @ $(date)"
+EVAL_LOG="${LOG_DIR}/sft_ds_qwen7b_eval_${TIMESTAMP}.log"
+
+for ckpt in $(ls -d "${OUTPUT_DIR}"/global_step_* 2>/dev/null | sort -V); do
+    STEP=$(basename "$ckpt" | sed 's/global_step_//')
+    echo "--- Eval step ${STEP} ---" | tee -a "${EVAL_LOG}"
+    python recipe/RLSD/sft_eval.py \
+        --model "$ckpt/actor" --output_dir "$OUTPUT_DIR" --step "$STEP" \
+        2>&1 | tee -a "${EVAL_LOG}"
+done
+
+echo "=== Done @ $(date) ==="
