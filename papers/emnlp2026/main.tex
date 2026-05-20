@@ -741,24 +741,6 @@ The masked-distilled model preserves the correct domain \([0, \pi]\) and the ver
 \end{casenote}
 
 
-\section{Group Relative Policy Optimization (GRPO)}
-
-Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning algorithm for fine-tuning policy LLMs $\pi_\theta$ without a separately learned value function. Its key idea is to normalize rewards within a group of responses sampled from the same prompt, thereby stabilizing optimization.
-
-Given a query $q$, the old policy $\pi_{\theta}^{\text{old}}$ generates $G$ candidate responses $\{o_1, \dots, o_G\}$. Each response $o_i$ is assigned a scalar reward $R(q, o_i)$. Group-wise z-score normalization is then applied to obtain an advantage shared across the tokens of the response:
-\[
-\hat{A}_{i,t} = \frac{R(q, o_i) - \operatorname{mean}(\{R(q, o_j)\}_{j=1}^G)}
-{\operatorname{std}(\{R(q, o_j)\}_{j=1}^G) + \varepsilon}.
-\]
-Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}^{\text{old}}(o_{i,t} \mid q, o_{i,<t})$. The policy is updated with a clipped surrogate objective, similar to PPO, combined with a KL-divergence penalty to constrain policy drift:
-\[
-\mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^G \frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\!\Bigl(
-    r_\theta(o_{i,t})\,\hat{A}_{i,t},\;
-    \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
-\Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
-\]
-Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
-
 \section{Full Epistemic Token Set}
 
 We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The set is organized into four functional categories reflecting distinct reasoning behaviors. To handle capitalization, whitespace, and trailing punctuation, we enumerate orthographic variants of each token and encode them with the model's tokenizer, collecting only the final token ID for multi-token fragments. The resulting token-ID set $\mathcal{I}$ is cached and reused across all training steps.
@@ -782,6 +764,24 @@ check, double-check, verify, confirm, make sure, ensure, let me check, let me ve
 wait, hold on, not quite, not exactly, that's not right, that can't be, something's off, I made a mistake, let me correct, let me redo, scratch that, I mean, rather, actually I think.
 \end{description}
 \end{tcolorbox}
+
+\section{Group Relative Policy Optimization (GRPO)}
+
+Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath} is a reinforcement learning algorithm for fine-tuning policy LLMs $\pi_\theta$ without a separately learned value function. Its key idea is to normalize rewards within a group of responses sampled from the same prompt, thereby stabilizing optimization.
+
+Given a query $q$, the old policy $\pi_{\theta}^{\text{old}}$ generates $G$ candidate responses $\{o_1, \dots, o_G\}$. Each response $o_i$ is assigned a scalar reward $R(q, o_i)$. Group-wise z-score normalization is then applied to obtain an advantage shared across the tokens of the response:
+\[
+\hat{A}_{i,t} = \frac{R(q, o_i) - \operatorname{mean}(\{R(q, o_j)\}_{j=1}^G)}
+{\operatorname{std}(\{R(q, o_j)\}_{j=1}^G) + \varepsilon}.
+\]
+Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}^{\text{old}}(o_{i,t} \mid q, o_{i,<t})$. The policy is updated with a clipped surrogate objective, similar to PPO, combined with a KL-divergence penalty to constrain policy drift:
+\[
+\mathcal{L}_{\text{GRPO}}(\theta) = -\frac{1}{G}\sum_{i=1}^G \frac{1}{|o_i|}\sum_{t=1}^{|o_i|} \min\!\Bigl(
+    r_\theta(o_{i,t})\,\hat{A}_{i,t},\;
+    \operatorname{clip}\!\bigl(r_\theta(o_{i,t}),\, 1-\varepsilon,\, 1+\varepsilon\bigr)\,\hat{A}_{i,t}
+\Bigr) + \beta\,\text{KL}(\pi_\theta \parallel \pi_{\text{ref}}).
+\]
+Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \begin{table*}[p]
   \centering
