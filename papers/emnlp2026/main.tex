@@ -524,14 +524,16 @@ SFT shows modest but consistent improvement---particularly on MATH-500, which is
 \begin{figure*}[t!]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_aime_curves_15b.pdf}
-\caption{Training curves for full-reasoning-trace self-distillation (1.5B).}
+\caption{Training dynamics for the 1.5B model. Naive self-distillation sharply degrades performance, 
+while masked self-distillation avoids the collapse and improves over SFT and GRPO baselines.}
 \label{fig:cot_aime}
 \end{figure*}
 
 \begin{figure*}[t!]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_aime_curves_7b.pdf}
-\caption{Training curves for full-reasoning-trace self-distillation (7B).}
+\caption{Training dynamics for the 7B model. The same pattern holds at larger scale: naive self-distillation 
+hurts mathematical reasoning, whereas masked self-distillation yields stable gains.}
 \label{fig:cot_aime_7b}
 \end{figure*}
 
@@ -759,26 +761,25 @@ Unlike self-distillation, GRPO uses no teacher model and no per-token supervisio
 
 \section{Full Epistemic Token Set}
 
-We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The base set consists of 10 tokens:
-\[
-\mathcal{E} = \{\text{wait, hmm, perhaps, maybe, actually, alternatively, seems, might, likely, check}\}.
-\]
-To handle capitalization, whitespace, and punctuation, we enumerate variants for each base token and encode them with the model's tokenizer:
+We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The set is organized into four functional categories reflecting distinct reasoning behaviors.
+
 {\small
-\begin{align*}
-\text{wait}:\; & \text{Wait, Wait, Wait., Wait,}, \text{ wait, wait, wait., wait,} \\
-\text{hmm}:\; & \text{Hmm, Hmm, Hmm., Hmm,}, \text{ hmm, hmm, hmm., hmm,} \\
-\text{perhaps}:\; & \text{Perhaps, Perhaps, Perhaps., perhaps, perhaps, perhaps.} \\
-\text{maybe}:\; & \text{Maybe, Maybe, Maybe., maybe, maybe, maybe.} \\
-\text{actually}:\; & \text{Actually, Actually, Actually., actually, actually, actually.} \\
-\text{alternatively}:\; & \text{Alternatively, Alternatively, Alternatively., alternatively, alternatively, alternatively.} \\
-\text{seems}:\; & \text{Seems, Seems, Seems., seems, seems, seems.} \\
-\text{might}:\; & \text{Might, Might, Might., might, might, might.} \\
-\text{likely}:\; & \text{Likely, Likely, Likely., likely, likely, likely.} \\
-\text{check}:\; & \text{Check, Check, Check., check, check, check.}
-\end{align*}
+\begin{description}[leftmargin=*,nosep,font=\normalfont\itshape]
+\item[Uncertainty / Hedging.]
+wait, hmm, hmmm, perhaps, maybe, seems, appears, might, likely, possibly, probably, roughly, approximately, I think, I believe, I suppose, not entirely sure, unclear, uncertain.
+
+\item[Reconsideration / Revision.]
+actually, alternatively, or rather, or maybe, on second thought, upon reflection, that said, having said that, but then, although, however, I wonder if, what if, could it be that.
+
+\item[Self-Checking / Verification.]
+check, double-check, verify, confirm, make sure, ensure, let me check, let me verify, let me confirm, let me see, let's see, is that right, is this correct, does this make sense.
+
+\item[Error Recognition / Correction.]
+wait, hold on, not quite, not exactly, that's not right, that can't be, something's off, I made a mistake, let me correct, let me redo, scratch that, I mean, rather, actually I think.
+\end{description}
 }
-Each variant also appears with a leading space for mid-sentence occurrences. Multi-token encodings take only the last token ID. The final token-ID set $\mathcal{I}$ is cached and reused across training steps.
+
+The set is intentionally small and interpretable: it covers common surface forms of uncertainty expression, reconsideration, self-verification, and error recovery observed in reasoning traces. To handle capitalization, whitespace, and trailing punctuation, we enumerate common orthographic variants of each token and encode them with the model's tokenizer, collecting only the final token ID for multi-token fragments. The resulting token-ID set $\mathcal{I}$ is cached and reused across all training steps.
 
 \begin{table*}[p]
   \centering

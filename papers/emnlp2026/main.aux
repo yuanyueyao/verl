@@ -573,12 +573,10 @@
 \@LN{475}{6}
 \@LN{476}{6}
 \citation{ziegler2019finetuning,stiennon2020learning,bai2022training}
-\bibdata{custom}
-\bibcite{agarwal2024onpolicy}{{1}{2024}{{Agarwal et~al.}}{{Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist, and Bachem}}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Training curves for full-reasoning-trace self-distillation (1.5B).}}{8}{figure.caption.8}\protected@file@percent }
-\newlabel{fig:cot_aime}{{5}{8}{Training curves for full-reasoning-trace self-distillation (1.5B)}{figure.caption.8}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Training curves for full-reasoning-trace self-distillation (7B).}}{8}{figure.caption.9}\protected@file@percent }
-\newlabel{fig:cot_aime_7b}{{6}{8}{Training curves for full-reasoning-trace self-distillation (7B)}{figure.caption.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Training dynamics for the 1.5B model. Naive self-distillation sharply degrades performance, while masked self-distillation avoids the collapse and improves over SFT and GRPO baselines.}}{8}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:cot_aime}{{5}{8}{Training dynamics for the 1.5B model. Naive self-distillation sharply degrades performance, while masked self-distillation avoids the collapse and improves over SFT and GRPO baselines}{figure.caption.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Training dynamics for the 7B model. The same pattern holds at larger scale: naive self-distillation hurts mathematical reasoning, whereas masked self-distillation yields stable gains.}}{8}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:cot_aime_7b}{{6}{8}{Training dynamics for the 7B model. The same pattern holds at larger scale: naive self-distillation hurts mathematical reasoning, whereas masked self-distillation yields stable gains}{figure.caption.9}{}}
 \def\@LN@column{1}
 \@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Epistemic-token and response-length trajectories (1.5B).}}{8}{figure.caption.12}\protected@file@percent }
 \newlabel{fig:dynamics}{{7}{8}{Epistemic-token and response-length trajectories (1.5B)}{figure.caption.12}{}}
@@ -600,9 +598,9 @@
 \@LN{490}{7}
 \@LN{491}{7}
 \@LN{492}{7}
+\def\@LN@column{2}
 \@LN{493}{7}
 \@LN{494}{7}
-\def\@LN@column{2}
 \@LN{495}{7}
 \@LN{496}{7}
 \@LN{497}{7}
@@ -625,7 +623,8 @@
 \@LN{513}{7}
 \@LN{514}{7}
 \@LN{515}{7}
-\@LN{516}{7}
+\bibdata{custom}
+\bibcite{agarwal2024onpolicy}{{1}{2024}{{Agarwal et~al.}}{{Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist, and Bachem}}}
 \bibcite{bai2022training}{{2}{2022}{{Bai et~al.}}{{Bai, Jones, Ndousse, Askell, Chen, DasSarma, Drain, Fort, Ganguli, Henighan et~al.}}}
 \bibcite{cobbe2021training}{{3}{2021}{{Cobbe et~al.}}{{Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano et~al.}}}
 \bibcite{deng2026conpress}{{4}{2026}{{Deng et~al.}}{{Deng, Liang, Li, Li, and Xie}}}
@@ -648,6 +647,7 @@
 \bibcite{penaloza2026privileged}{{21}{2026}{{Pe{\~n}aloza et~al.}}{{Pe{\~n}aloza, Vattikonda, Gontier, Lacoste, Charlin, and Caccia}}}
 \bibcite{sang2026onpolicy}{{22}{2026}{{Sang et~al.}}{{Sang, Xu, Zhou, He, Wang, and Sun}}}
 \def\@LN@column{1}
+\@LN{516}{8}
 \@LN{517}{8}
 \@LN{518}{8}
 \@LN{519}{8}
@@ -990,8 +990,6 @@
 \@LN{815}{13}
 \@LN{816}{13}
 \@LN{817}{13}
-\@LN{818}{13}
-\@LN{819}{13}
 \@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Training hyperparameters for all methods. ``---'' indicates the setting is not applicable. Shared values are merged across columns.}}{15}{table.caption.19}\protected@file@percent }
 \newlabel{tab:hyperparams}{{4}{15}{Training hyperparameters for all methods. ``---'' indicates the setting is not applicable. Shared values are merged across columns}{table.caption.19}{}}
 \gdef \@abspage@last{15}
