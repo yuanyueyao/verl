@@ -1,73 +1,111 @@
 \begin{thebibliography}{44}
 \providecommand{\natexlab}[1]{#1}
 
-\bibitem[{Agarwal et~al.(2024)Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist, and Bachem}]{agarwal2024onpolicy}
-Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, Piotr Stanczyk, Sabela~Ramos Garea, Matthieu Geist, and Olivier Bachem. 2024.
-\newblock On-policy distillation of language models: Learning from self-generated mistakes.
-\newblock In \emph{The Twelfth International Conference on Learning Representations}.
+\bibitem[{Agarwal et~al.(2024)Agarwal, Vieillard, Zhou, Stanczyk, Garea, Geist,
+  and Bachem}]{agarwal2024onpolicy}
+Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, Piotr Stanczyk, Sabela~Ramos
+  Garea, Matthieu Geist, and Olivier Bachem. 2024.
+\newblock On-policy distillation of language models: Learning from
+  self-generated mistakes.
+\newblock In \emph{The Twelfth International Conference on Learning
+  Representations}.
 
-\bibitem[{Bai et~al.(2022)Bai, Jones, Ndousse, Askell, Chen, DasSarma, Drain, Fort, Ganguli, Henighan et~al.}]{bai2022training}
-Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda Askell, Anna Chen, Nova DasSarma, Dawn Drain, Stanislav Fort, Deep Ganguli, Tom Henighan, and 1 others. 2022.
-\newblock Training a helpful and harmless assistant with reinforcement learning from human feedback.
+\bibitem[{Bai et~al.(2022)Bai, Jones, Ndousse, Askell, Chen, DasSarma, Drain,
+  Fort, Ganguli, Henighan et~al.}]{bai2022training}
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda Askell, Anna Chen, Nova DasSarma,
+  Dawn Drain, Stanislav Fort, Deep Ganguli, Tom Henighan, and 1 others. 2022.
+\newblock Training a helpful and harmless assistant with reinforcement learning
+  from human feedback.
 \newblock \emph{arXiv preprint arXiv:2204.05862}.
 
-\bibitem[{Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano et~al.}]{cobbe2021training}
-Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, and 1 others. 2021.
+\bibitem[{Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano et~al.}]{cobbe2021training}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, and
+  1 others. 2021.
 \newblock Training verifiers to solve math word problems.
 \newblock In \emph{Advances in Neural Information Processing Systems}.
 
 \bibitem[{Deng et~al.(2026)Deng, Liang, Li, Li, and Xie}]{deng2026conpress}
 Jie Deng, Shining Liang, Jun Li, Hongzhi Li, and Yutao Xie. 2026.
-\newblock Conpress: Learning efficient reasoning from multi-question contextual pressure.
+\newblock Conpress: Learning efficient reasoning from multi-question contextual
+  pressure.
 \newblock \emph{arXiv preprint arXiv:2602.01472}.
 
-\bibitem[{Guha et~al.(2025)Guha, Marten, Keh, Raoof, Smyrnis, Bansal, Nezhurina, Mercat, Vu, Sprague et~al.}]{guha2025openthoughts}
-Ethan Guha, Ryan Marten, Sedrick Keh, Nikhil Raoof, Georgios Smyrnis, Hritik Bansal, Marianna Nezhurina, Jean Mercat, Tu~Vu, Zayne Sprague, and 1 others. 2025.
+\bibitem[{Guha et~al.(2025)Guha, Marten, Keh, Raoof, Smyrnis, Bansal,
+  Nezhurina, Mercat, Vu, Sprague et~al.}]{guha2025openthoughts}
+Ethan Guha, Ryan Marten, Sedrick Keh, Nikhil Raoof, Georgios Smyrnis, Hritik
+  Bansal, Marianna Nezhurina, Jean Mercat, Tu~Vu, Zayne Sprague, and 1 others.
+  2025.
 \newblock Openthoughts: Data recipes for reasoning models.
 \newblock \emph{arXiv preprint arXiv:2506.04178}.
 
-\bibitem[{Guo et~al.(2025)Guo, Yang, Zhang, Song, Wang, Zhu, Xu, Zhang, Ma, Bi et~al.}]{guo2025deepseek}
-Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, and 1 others. 2025.
-\newblock \href {https://doi.org/10.1038/s41586-025-09422-z} {Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning}.
+\bibitem[{Guo et~al.(2025)Guo, Yang, Zhang, Song, Wang, Zhu, Xu, Zhang, Ma, Bi
+  et~al.}]{guo2025deepseek}
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu,
+  Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, and 1 others. 2025.
+\newblock \href {https://doi.org/10.1038/s41586-025-09422-z} {Deepseek-r1:
+  Incentivizing reasoning capability in llms via reinforcement learning}.
 \newblock \emph{Nature}, 645:633--638.
 
-\bibitem[{Hendrycks et~al.(2021)Hendrycks, Burns, Kadavath, Arora, Basart, Tang, Song, and Steinhardt}]{hendrycks2021measuring}
-Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. 2021.
+\bibitem[{Hendrycks et~al.(2021)Hendrycks, Burns, Kadavath, Arora, Basart,
+  Tang, Song, and Steinhardt}]{hendrycks2021measuring}
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric
+  Tang, Dawn Song, and Jacob Steinhardt. 2021.
 \newblock Measuring mathematical problem solving with the {MATH} dataset.
 \newblock In \emph{Advances in Neural Information Processing Systems}.
 
-\bibitem[{Huang et~al.(2023)Huang, Chen, Mishra, Zheng, Yu, Song, and Zhou}]{huang2023large}
-Jie Huang, Xinyun Chen, Swaroop Mishra, Huaixiu~Steven Zheng, Adams~Wei Yu, Xinying Song, and Denny Zhou. 2023.
+\bibitem[{Huang et~al.(2023)Huang, Chen, Mishra, Zheng, Yu, Song, and
+  Zhou}]{huang2023large}
+Jie Huang, Xinyun Chen, Swaroop Mishra, Huaixiu~Steven Zheng, Adams~Wei Yu,
+  Xinying Song, and Denny Zhou. 2023.
 \newblock Large language models cannot self-correct reasoning yet.
 \newblock \emph{arXiv preprint arXiv:2310.01798}.
 
-\bibitem[{H{\"u}botter et~al.(2026)H{\"u}botter, L{\"u}beck, Behric, Baumann, Bagatella, M{\"a}rta, Hakimi, Shenfeld, B{\"u}ening, Guestrin et~al.}]{hubotter2026reinforcement}
-Jonas H{\"u}botter, Frederike L{\"u}beck, Lejs Behric, Anton Baumann, Marco Bagatella, Daniel M{\"a}rta, Ido Hakimi, Idan Shenfeld, Thomas~Kleine B{\"u}ening, Carlos Guestrin, and 1 others. 2026.
+\bibitem[{H{\"u}botter et~al.(2026)H{\"u}botter, L{\"u}beck, Behric, Baumann,
+  Bagatella, M{\"a}rta, Hakimi, Shenfeld, B{\"u}ening, Guestrin
+  et~al.}]{hubotter2026reinforcement}
+Jonas H{\"u}botter, Frederike L{\"u}beck, Lejs Behric, Anton Baumann, Marco
+  Bagatella, Daniel M{\"a}rta, Ido Hakimi, Idan Shenfeld, Thomas~Kleine
+  B{\"u}ening, Carlos Guestrin, and 1 others. 2026.
 \newblock Reinforcement learning via self-distillation.
 \newblock \emph{arXiv preprint arXiv:2601.20802}.
 
 \bibitem[{{HuggingFace}(2024)}]{mathverify2024}
 {HuggingFace}. 2024.
-\newblock Math-verify: A robust mathematical expression evaluation system for assessing large language model outputs in mathematical tasks.
+\newblock Math-verify: A robust mathematical expression evaluation system for
+  assessing large language model outputs in mathematical tasks.
 \newblock \url{https://github.com/huggingface/Math-Verify}.
 
-\bibitem[{Jin et~al.(2026)Jin, Wang, Fu, Xiao, Luo, Liu, Prakash, Hester, Wang, and Kumar}]{jin2026unisd}
-Yiqiao Jin, Yiyang Wang, Lucheng Fu, Yijia Xiao, Yinyi Luo, Haoxin Liu, B.~Aditya Prakash, Josiah Hester, Jindong Wang, and Srijan Kumar. 2026.
-\newblock Unisd: Towards a unified self-distillation framework for large language models.
+\bibitem[{Jin et~al.(2026)Jin, Wang, Fu, Xiao, Luo, Liu, Prakash, Hester, Wang,
+  and Kumar}]{jin2026unisd}
+Yiqiao Jin, Yiyang Wang, Lucheng Fu, Yijia Xiao, Yinyi Luo, Haoxin Liu,
+  B.~Aditya Prakash, Josiah Hester, Jindong Wang, and Srijan Kumar. 2026.
+\newblock Unisd: Towards a unified self-distillation framework for large
+  language models.
 \newblock \emph{arXiv preprint arXiv:2605.06597}.
 
-\bibitem[{Kadavath et~al.(2022)Kadavath, Conerly, Askell, Henighan, Drain, Perez, Schiefer, Hatfield-Dodds, DasSarma, Tran-Johnson et~al.}]{kadavath2022language}
-Saurav Kadavath, Tom Conerly, Amanda Askell, Tom Henighan, Dawn Drain, Ethan Perez, Nicholas Schiefer, Zac Hatfield-Dodds, Nova DasSarma, Eli Tran-Johnson, and 1 others. 2022.
+\bibitem[{Kadavath et~al.(2022)Kadavath, Conerly, Askell, Henighan, Drain,
+  Perez, Schiefer, Hatfield-Dodds, DasSarma, Tran-Johnson
+  et~al.}]{kadavath2022language}
+Saurav Kadavath, Tom Conerly, Amanda Askell, Tom Henighan, Dawn Drain, Ethan
+  Perez, Nicholas Schiefer, Zac Hatfield-Dodds, Nova DasSarma, Eli
+  Tran-Johnson, and 1 others. 2022.
 \newblock Language models (mostly) know what they know.
 \newblock \emph{arXiv preprint arXiv:2207.05221}.
 
-\bibitem[{Kojima et~al.(2022)Kojima, Gu, Reid, Matsuo, and Iwasawa}]{kojima2022large}
-Takeshi Kojima, Shixiang~Shane Gu, Machel Reid, Yutaka Matsuo, and Yusuke Iwasawa. 2022.
+\bibitem[{Kojima et~al.(2022)Kojima, Gu, Reid, Matsuo, and
+  Iwasawa}]{kojima2022large}
+Takeshi Kojima, Shixiang~Shane Gu, Machel Reid, Yutaka Matsuo, and Yusuke
+  Iwasawa. 2022.
 \newblock Large language models are zero-shot reasoners.
-\newblock In \emph{Advances in Neural Information Processing Systems}, volume~35.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~35.
 
-\bibitem[{Lightman et~al.(2023)Lightman, Kosaraju, Burda, Edwards, Baker, Lee, Leike, Schulman, Sutskever, and Cobbe}]{lightman2023lets}
-Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. 2023.
+\bibitem[{Lightman et~al.(2023)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe}]{lightman2023lets}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy
+  Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. 2023.
 \newblock Let's verify step by step.
 \newblock \emph{arXiv preprint arXiv:2305.20050}.
 
@@ -78,63 +116,87 @@ Stephanie Lin, Jacob Hilton, and Owain Evans. 2022.
 
 \bibitem[{Liu et~al.(2026)Liu, Kim, Luo, Li, and Yang}]{liu2026exploratory}
 Zeyuan Liu, Jeonghye Kim, Xufang Luo, Dongsheng Li, and Yuqing Yang. 2026.
-\newblock Exploratory memory-augmented llm agent via hybrid on- and off-policy optimization.
+\newblock Exploratory memory-augmented llm agent via hybrid on- and off-policy
+  optimization.
 \newblock \emph{arXiv preprint arXiv:2602.23008}.
 
-\bibitem[{Luo et~al.(2026)Luo, Ren, Chen, Liu, Fang, Tan, and Huang}]{luo2026compress}
-Qin-Wen Luo, Sheng Ren, Xiang Chen, Rui Liu, Jun Fang, Naiqiang Tan, and Sheng-Jun Huang. 2026.
-\newblock Compress the easy, explore the hard: Difficulty-aware entropy regularization for efficient llm reasoning.
+\bibitem[{Luo et~al.(2026)Luo, Ren, Chen, Liu, Fang, Tan, and
+  Huang}]{luo2026compress}
+Qin-Wen Luo, Sheng Ren, Xiang Chen, Rui Liu, Jun Fang, Naiqiang Tan, and
+  Sheng-Jun Huang. 2026.
+\newblock Compress the easy, explore the hard: Difficulty-aware entropy
+  regularization for efficient llm reasoning.
 \newblock \emph{arXiv preprint arXiv:2602.22642}.
 
-\bibitem[{Madaan et~al.(2023)Madaan, Tandon, Gupta, Hallinan, Gao, Wiegreffe, Alon, Dziri, Prabhumoye, Yang et~al.}]{madaan2023self}
-Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang, and 1 others. 2023.
+\bibitem[{Madaan et~al.(2023)Madaan, Tandon, Gupta, Hallinan, Gao, Wiegreffe,
+  Alon, Dziri, Prabhumoye, Yang et~al.}]{madaan2023self}
+Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu Gao, Sarah
+  Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang, and 1
+  others. 2023.
 \newblock Self-refine: Iterative refinement with self-feedback.
 \newblock \emph{Advances in Neural Information Processing Systems}, 36.
 
 \bibitem[{{Mathematical Association of America}(2026)}]{maa_aime}
 {Mathematical Association of America}. 2026.
-\newblock {MAA} invitational competitions: American invitational mathematics examination.
+\newblock {MAA} invitational competitions: American invitational mathematics
+  examination.
 \newblock \url{https://maa.org/maa-invitational-competitions/}.
 \newblock Accessed: 2026-05-19.
 
 \bibitem[{Patel et~al.(2021)Patel, Bhattamishra, and Goyal}]{patel2021svamp}
 Arkil Patel, Satwik Bhattamishra, and Navin Goyal. 2021.
 \newblock Are {NLP} models really able to solve simple math word problems?
-\newblock In \emph{Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies}.
+\newblock In \emph{Proceedings of the 2021 Conference of the North American
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies}.
 
-\bibitem[{Pe{\~n}aloza et~al.(2026)Pe{\~n}aloza, Vattikonda, Gontier, Lacoste, Charlin, and Caccia}]{penaloza2026privileged}
-Emiliano Pe{\~n}aloza, Dheeraj Vattikonda, Nicolas Gontier, Alexandre Lacoste, Laurent Charlin, and Massimo Caccia. 2026.
+\bibitem[{Pe{\~n}aloza et~al.(2026)Pe{\~n}aloza, Vattikonda, Gontier, Lacoste,
+  Charlin, and Caccia}]{penaloza2026privileged}
+Emiliano Pe{\~n}aloza, Dheeraj Vattikonda, Nicolas Gontier, Alexandre Lacoste,
+  Laurent Charlin, and Massimo Caccia. 2026.
 \newblock Privileged information distillation for language models.
 \newblock \emph{arXiv preprint arXiv:2602.04942}.
 
-\bibitem[{Sang et~al.(2026)Sang, Xu, Zhou, He, Wang, and Sun}]{sang2026onpolicy}
-Hejian Sang, Yuanda Xu, Zhengze Zhou, Ran He, Zhipeng Wang, and Jiachen Sun. 2026.
+\bibitem[{Sang et~al.(2026)Sang, Xu, Zhou, He, Wang, and
+  Sun}]{sang2026onpolicy}
+Hejian Sang, Yuanda Xu, Zhengze Zhou, Ran He, Zhipeng Wang, and Jiachen Sun.
+  2026.
 \newblock On-policy self-distillation for reasoning compression.
 \newblock \emph{arXiv preprint arXiv:2603.05433}.
 
-\bibitem[{Saxton et~al.(2019)Saxton, Grefenstette, Hill, and Kohli}]{saxton2019analysing}
+\bibitem[{Saxton et~al.(2019)Saxton, Grefenstette, Hill, and
+  Kohli}]{saxton2019analysing}
 David Saxton, Edward Grefenstette, Felix Hill, and Pushmeet Kohli. 2019.
 \newblock Analysing mathematical reasoning abilities of neural models.
 \newblock In \emph{International Conference on Learning Representations}.
 
-\bibitem[{Shao et~al.(2024)Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu et~al.}]{shao2024deepseekmath}
-Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK~Li, Y~Wu, and 1 others. 2024.
-\newblock Deepseekmath: Pushing the limits of mathematical reasoning in open language models.
+\bibitem[{Shao et~al.(2024)Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu
+  et~al.}]{shao2024deepseekmath}
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+  Zhang, Mingchuan Zhang, YK~Li, Y~Wu, and 1 others. 2024.
+\newblock Deepseekmath: Pushing the limits of mathematical reasoning in open
+  language models.
 \newblock \emph{arXiv preprint arXiv:2402.03300}.
 
-\bibitem[{Shenfeld et~al.(2026)Shenfeld, Damani, H{\"u}botter, and Agrawal}]{shenfeld2026self}
+\bibitem[{Shenfeld et~al.(2026)Shenfeld, Damani, H{\"u}botter, and
+  Agrawal}]{shenfeld2026self}
 Idan Shenfeld, Mehul Damani, Jonas H{\"u}botter, and Pulkit Agrawal. 2026.
 \newblock Self-distillation enables continual learning.
 \newblock \emph{arXiv preprint arXiv:2601.19897}.
 
-\bibitem[{Sheng et~al.(2024)Sheng, Zhang, Ye, Wu, Zhang, Zhang, Peng, Lin, and Wu}]{sheng2024hybridflow}
-Guangming Sheng, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru~Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024.
+\bibitem[{Sheng et~al.(2024)Sheng, Zhang, Ye, Wu, Zhang, Zhang, Peng, Lin, and
+  Wu}]{sheng2024hybridflow}
+Guangming Sheng, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru~Zhang,
+  Yanghua Peng, Haibin Lin, and Chuan Wu. 2024.
 \newblock Hybridflow: A flexible and efficient {RLHF} framework.
 \newblock \emph{arXiv preprint arXiv:2409.19256}.
 
-\bibitem[{Shrivastava et~al.(2025)Shrivastava, Awadallah, Balachandran, Garg, Behl, and Papailiopoulos}]{shrivastava2025sample}
-Vaishnavi Shrivastava, Ahmed~Hassan Awadallah, Vidhisha Balachandran, Shivam Garg, Harkirat Behl, and Dimitris Papailiopoulos. 2025.
-\newblock Sample more to think less: Group filtered policy optimization for concise reasoning.
+\bibitem[{Shrivastava et~al.(2025)Shrivastava, Awadallah, Balachandran, Garg,
+  Behl, and Papailiopoulos}]{shrivastava2025sample}
+Vaishnavi Shrivastava, Ahmed~Hassan Awadallah, Vidhisha Balachandran, Shivam
+  Garg, Harkirat Behl, and Dimitris Papailiopoulos. 2025.
+\newblock Sample more to think less: Group filtered policy optimization for
+  concise reasoning.
 \newblock \emph{First Workshop on Foundations of Reasoning in Language Models}.
 
 \bibitem[{Snell et~al.(2022)Snell, Klein, and Zhong}]{snell2022learning}
@@ -142,55 +204,90 @@ Charlie Snell, Dan Klein, and Ruiqi Zhong. 2022.
 \newblock Learning by distilling context.
 \newblock \emph{arXiv preprint arXiv:2209.15189}.
 
-\bibitem[{Song et~al.(2026)Song, Chen, Tajwar, Munos, Pathak, Bagnell, Singh, and Zanette}]{song2026expanding}
-Yuda Song, Lili Chen, Fahim Tajwar, R{\'e}mi Munos, Deepak Pathak, J~Andrew Bagnell, Aarti Singh, and Andrea Zanette. 2026.
-\newblock Expanding the capabilities of reinforcement learning via text feedback.
+\bibitem[{Song et~al.(2026)Song, Chen, Tajwar, Munos, Pathak, Bagnell, Singh,
+  and Zanette}]{song2026expanding}
+Yuda Song, Lili Chen, Fahim Tajwar, R{\'e}mi Munos, Deepak Pathak, J~Andrew
+  Bagnell, Aarti Singh, and Andrea Zanette. 2026.
+\newblock Expanding the capabilities of reinforcement learning via text
+  feedback.
 \newblock \emph{arXiv preprint arXiv:2602.02482}.
 
-\bibitem[{Stiennon et~al.(2020)Stiennon, Ouyang, Wu, Ziegler, Lowe, Voss, Radford, Amodei, and Christiano}]{stiennon2020learning}
-Nisan Stiennon, Long Ouyang, Jeffrey Wu, Daniel~M. Ziegler, Ryan Lowe, Chelsea Voss, Alec Radford, Dario Amodei, and Paul Christiano. 2020.
+\bibitem[{Stiennon et~al.(2020)Stiennon, Ouyang, Wu, Ziegler, Lowe, Voss,
+  Radford, Amodei, and Christiano}]{stiennon2020learning}
+Nisan Stiennon, Long Ouyang, Jeffrey Wu, Daniel~M. Ziegler, Ryan Lowe, Chelsea
+  Voss, Alec Radford, Dario Amodei, and Paul Christiano. 2020.
 \newblock Learning to summarize with human feedback.
-\newblock In \emph{Advances in Neural Information Processing Systems}, volume~33.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~33.
 
-\bibitem[{Tian et~al.(2023)Tian, Mitchell, Yao, Manning, and Finn}]{tian2023fine}
-Katherine Tian, Eric Mitchell, Huaxiu Yao, Christopher~D Manning, and Chelsea Finn. 2023.
+\bibitem[{Tian et~al.(2023)Tian, Mitchell, Yao, Manning, and
+  Finn}]{tian2023fine}
+Katherine Tian, Eric Mitchell, Huaxiu Yao, Christopher~D Manning, and Chelsea
+  Finn. 2023.
 \newblock Fine-tuning language models for factuality.
 \newblock \emph{arXiv preprint arXiv:2311.08401}.
 
-\bibitem[{Troitskii et~al.(2025)Troitskii, Pal, Wendler, and McDougall}]{troitskii2025internal}
-Dmitrii Troitskii, Koyena Pal, Chris Wendler, and Callum~Stuart McDougall. 2025.
-\newblock \href {https://doi.org/10.18653/v1/2025.findings-emnlp.1012} {Internal states before wait modulate reasoning patterns}.
-\newblock In \emph{Findings of the Association for Computational Linguistics: EMNLP 2025}, pages 18640--18649, Suzhou, China. Association for Computational Linguistics.
+\bibitem[{Troitskii et~al.(2025)Troitskii, Pal, Wendler, and
+  McDougall}]{troitskii2025internal}
+Dmitrii Troitskii, Koyena Pal, Chris Wendler, and Callum~Stuart McDougall.
+  2025.
+\newblock \href {https://doi.org/10.18653/v1/2025.findings-emnlp.1012}
+  {Internal states before wait modulate reasoning patterns}.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  EMNLP 2025}, pages 18640--18649, Suzhou, China. Association for Computational
+  Linguistics.
 
-\bibitem[{Uesato et~al.(2022)Uesato, Kushman, Kumar, Song, Siegel, Wang, Creswell, Irving, and Higgins}]{uesato2022solving}
-Jonathan Uesato, Nate Kushman, Ramana Kumar, Francis Song, Noah Siegel, Lisa Wang, Antonia Creswell, Geoffrey Irving, and Irina Higgins. 2022.
+\bibitem[{Uesato et~al.(2022)Uesato, Kushman, Kumar, Song, Siegel, Wang,
+  Creswell, Irving, and Higgins}]{uesato2022solving}
+Jonathan Uesato, Nate Kushman, Ramana Kumar, Francis Song, Noah Siegel, Lisa
+  Wang, Antonia Creswell, Geoffrey Irving, and Irina Higgins. 2022.
 \newblock Solving math word problems with process- and outcome-based feedback.
 \newblock \emph{arXiv preprint arXiv:2211.14275}.
 
-\bibitem[{Wang et~al.(2025)Wang, Feng, Chen, Chu, Krishna, and Zhou}]{wang2025wait}
-Chenlong Wang, Yuanning Feng, Dongping Chen, Zhaoyang Chu, Ranjay Krishna, and Tianyi Zhou. 2025.
-\newblock \href {https://doi.org/10.18653/v1/2025.findings-emnlp.394} {Wait, we don{'}t need to ``wait''! removing thinking tokens improves reasoning efficiency}.
-\newblock In \emph{Findings of the Association for Computational Linguistics: EMNLP 2025}, pages 7459--7482, Suzhou, China. Association for Computational Linguistics.
+\bibitem[{Wang et~al.(2025)Wang, Feng, Chen, Chu, Krishna, and
+  Zhou}]{wang2025wait}
+Chenlong Wang, Yuanning Feng, Dongping Chen, Zhaoyang Chu, Ranjay Krishna, and
+  Tianyi Zhou. 2025.
+\newblock \href {https://doi.org/10.18653/v1/2025.findings-emnlp.394} {Wait, we
+  don{'}t need to ``wait''! removing thinking tokens improves reasoning
+  efficiency}.
+\newblock In \emph{Findings of the Association for Computational Linguistics:
+  EMNLP 2025}, pages 7459--7482, Suzhou, China. Association for Computational
+  Linguistics.
 
-\bibitem[{Wang et~al.(2023)Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery, and Zhou}]{wang2023selfconsistency}
-Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed~Chi, Sharan Narang, Aakanksha Chowdhery, and Denny Zhou. 2023.
-\newblock Self-consistency improves chain of thought reasoning in language models.
+\bibitem[{Wang et~al.(2023)Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery,
+  and Zhou}]{wang2023selfconsistency}
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed~Chi, Sharan Narang,
+  Aakanksha Chowdhery, and Denny Zhou. 2023.
+\newblock Self-consistency improves chain of thought reasoning in language
+  models.
 \newblock In \emph{International Conference on Learning Representations}.
 
-\bibitem[{Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Xia, Chi, Le, and Zhou}]{wei2022chain}
-Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed~Chi, Quoc~V Le, and Denny Zhou. 2022.
-\newblock Chain-of-thought prompting elicits reasoning in large language models.
-\newblock In \emph{Advances in Neural Information Processing Systems}, volume~35.
+\bibitem[{Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Xia, Chi, Le, and
+  Zhou}]{wei2022chain}
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed~Chi, Quoc~V
+  Le, and Denny Zhou. 2022.
+\newblock Chain-of-thought prompting elicits reasoning in large language
+  models.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~35.
 
-\bibitem[{Yang et~al.(2026)Yang, Guo, Huang, Wang, Shi, Wang, Liang, and Tang}]{yang2026accordion}
-Zhicheng Yang, Zhijiang Guo, Yinya Huang, Yongxin Wang, Wenlei Shi, Yiwei Wang, Xiaodan Liang, and Jing Tang. 2026.
-\newblock Accordion-thinking: Self-regulated step summaries for efficient and readable llm reasoning.
+\bibitem[{Yang et~al.(2026)Yang, Guo, Huang, Wang, Shi, Wang, Liang, and
+  Tang}]{yang2026accordion}
+Zhicheng Yang, Zhijiang Guo, Yinya Huang, Yongxin Wang, Wenlei Shi, Yiwei Wang,
+  Xiaodan Liang, and Jing Tang. 2026.
+\newblock Accordion-thinking: Self-regulated step summaries for efficient and
+  readable llm reasoning.
 \newblock \emph{arXiv preprint arXiv:2602.03249}.
 
-\bibitem[{Yao et~al.(2023)Yao, Yu, Zhao, Shafran, Griffiths, Cao, and Narasimhan}]{yao2023tree}
-Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas~L. Griffiths, Yuan Cao, and Karthik Narasimhan. 2023.
-\newblock Tree of thoughts: Deliberate problem solving with large language models.
-\newblock In \emph{Advances in Neural Information Processing Systems}, volume~36.
+\bibitem[{Yao et~al.(2023)Yao, Yu, Zhao, Shafran, Griffiths, Cao, and
+  Narasimhan}]{yao2023tree}
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas~L. Griffiths, Yuan
+  Cao, and Karthik Narasimhan. 2023.
+\newblock Tree of thoughts: Deliberate problem solving with large language
+  models.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~36.
 
 \bibitem[{Ye et~al.(2026)Ye, Dong, Wu, Huang, and Wei}]{ye2026onpolicy}
 Tianzhu Ye, Li~Dong, Xun Wu, Shaohan Huang, and Furu Wei. 2026.
@@ -199,26 +296,39 @@ Tianzhu Ye, Li~Dong, Xun Wu, Shaohan Huang, and Furu Wei. 2026.
 
 \bibitem[{Yona et~al.(2024)Yona, Aharoni, and Geva}]{yona2024faithfully}
 Gal Yona, Roee Aharoni, and Mor Geva. 2024.
-\newblock \href {https://doi.org/10.18653/v1/2024.emnlp-main.443} {Can large language models faithfully express their intrinsic uncertainty in words?}
-\newblock In \emph{Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing}, pages 7752--7764, Miami, Florida, USA. Association for Computational Linguistics.
+\newblock \href {https://doi.org/10.18653/v1/2024.emnlp-main.443} {Can large
+  language models faithfully express their intrinsic uncertainty in words?}
+\newblock In \emph{Proceedings of the 2024 Conference on Empirical Methods in
+  Natural Language Processing}, pages 7752--7764, Miami, Florida, USA.
+  Association for Computational Linguistics.
 
-\bibitem[{Zhang et~al.(2026{\natexlab{a}})Zhang, Bai, Zheng, Jaitly, Collobert, and Zhang}]{zhang2026simple}
-Ruixiang Zhang, Richard~He Bai, Huangjie Zheng, Navdeep Jaitly, Ronan Collobert, and Yizhe Zhang. 2026{\natexlab{a}}.
+\bibitem[{Zhang et~al.(2026{\natexlab{a}})Zhang, Bai, Zheng, Jaitly, Collobert,
+  and Zhang}]{zhang2026simple}
+Ruixiang Zhang, Richard~He Bai, Huangjie Zheng, Navdeep Jaitly, Ronan
+  Collobert, and Yizhe Zhang. 2026{\natexlab{a}}.
 \newblock Embarrassingly simple self-distillation improves code generation.
 \newblock \emph{arXiv preprint arXiv:2604.01193}.
 
-\bibitem[{Zhang et~al.(2026{\natexlab{b}})Zhang, Ding, Pan, Yang, Kang, Xiong, and Gu}]{zhang2026opsdl}
-Xinsen Zhang, Zhenkai Ding, Tianjun Pan, Run Yang, Chun Kang, Xue Xiong, and Jingnan Gu. 2026{\natexlab{b}}.
+\bibitem[{Zhang et~al.(2026{\natexlab{b}})Zhang, Ding, Pan, Yang, Kang, Xiong,
+  and Gu}]{zhang2026opsdl}
+Xinsen Zhang, Zhenkai Ding, Tianjun Pan, Run Yang, Chun Kang, Xue Xiong, and
+  Jingnan Gu. 2026{\natexlab{b}}.
 \newblock Opsdl: On-policy self-distillation for long-context language models.
 \newblock \emph{arXiv preprint arXiv:2604.17535}.
 
-\bibitem[{Zhou et~al.(2023)Zhou, Sch{\"a}rli, Hou, Wei, Scales, Wang, Schuurmans, Cui, Bousquet, Le, and Chi}]{zhou2023leasttomost}
-Denny Zhou, Nathanael Sch{\"a}rli, Le~Hou, Jason Wei, Nathan Scales, Xuezhi Wang, Dale Schuurmans, Claire Cui, Olivier Bousquet, Quoc Le, and Ed~Chi. 2023.
-\newblock Least-to-most prompting enables complex reasoning in large language models.
+\bibitem[{Zhou et~al.(2023)Zhou, Sch{\"a}rli, Hou, Wei, Scales, Wang,
+  Schuurmans, Cui, Bousquet, Le, and Chi}]{zhou2023leasttomost}
+Denny Zhou, Nathanael Sch{\"a}rli, Le~Hou, Jason Wei, Nathan Scales, Xuezhi
+  Wang, Dale Schuurmans, Claire Cui, Olivier Bousquet, Quoc Le, and Ed~Chi.
+  2023.
+\newblock Least-to-most prompting enables complex reasoning in large language
+  models.
 \newblock In \emph{International Conference on Learning Representations}.
 
-\bibitem[{Ziegler et~al.(2019)Ziegler, Stiennon, Wu, Brown, Radford, Amodei, Christiano, and Irving}]{ziegler2019finetuning}
-Daniel~M. Ziegler, Nisan Stiennon, Jeffrey Wu, Tom~B. Brown, Alec Radford, Dario Amodei, Paul Christiano, and Geoffrey Irving. 2019.
+\bibitem[{Ziegler et~al.(2019)Ziegler, Stiennon, Wu, Brown, Radford, Amodei,
+  Christiano, and Irving}]{ziegler2019finetuning}
+Daniel~M. Ziegler, Nisan Stiennon, Jeffrey Wu, Tom~B. Brown, Alec Radford,
+  Dario Amodei, Paul Christiano, and Geoffrey Irving. 2019.
 \newblock Fine-tuning language models from human preferences.
 \newblock \emph{arXiv preprint arXiv:1909.08593}.
 

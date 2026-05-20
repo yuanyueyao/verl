@@ -379,7 +379,7 @@ This gives a lightweight token set, including:
 
 The set is small and interpretable, covering uncertainty, reconsideration, and self-checking tokens.
 To handle surface-form variation (capitalization, punctuation, surrounding whitespace), we enumerate common variants of each token and encode them with the model's tokenizer.
-This yields a set of token IDs $\mathcal{I}$, cached and reused across training steps.
+This yields a set of token IDs $\mathcal{I}$, cached and reused across training steps. The full list is provided in Appendix~\ref{app:epi_set}.
 
 \subsection{Masked Self-Distillation Loss}
 
@@ -554,7 +554,7 @@ By preserving epistemic tokens, masked self-distillation keeps both accuracy and
 \begin{figure}[ht]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_combined_4panel_15b.pdf}
-\caption{Epistemic-token and response-length trajectories (1.5B).}
+\caption{Epistemic-token and response-length trajectories for the 1.5B model.}
 \label{fig:dynamics}
 \end{figure}
 
@@ -596,9 +596,9 @@ Our results suggest that it's worthwhile to consider token function in post-trai
 % ═══════════════════════════════════════════════════════════════
 In this paper, we identify a failure mode of on-policy self-distillation in mathematical reasoning. 
 We show that naive self-distillation degrades reflective reasoning ability through punishing epistemic tokens, thus suppressing the hesitation, revision, and self-verification behaviors needed for complex reasoning.
-To address this issue, we propose masked self-distillation, a simple objective modification that removes the loss term at epistemic-token positions while preserving ordinary distillation elsewhere. 
-Experiments on AIME24, AIME25, and MATH-500 show that masked self-distillation mitigates the degradation of naive self-distillation and preserves reflective reasoning behavior. 
-These results suggest that post-training objectives may need to account for token function, rather than treating all tokens similarly.
+To address this issue, we propose masked self-distillation. 
+Our experiments demonstrate that masked self-distillation mitigates the degradation of naive self-distillation and preserves reflective reasoning behavior, and outperforms other two post-training paradigms. 
+These results suggest that post-training objectives may need to account for token function, rather than treating all tokens the same way.
 % ═══════════════════════════════════════════════════════════════
 % Bibliography
 % ═══════════════════════════════════════════════════════════════
@@ -650,6 +650,7 @@ Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 
 \section{Full Epistemic Token Set}
+\label{app:epi_set}
 
 We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The set is organized into four functional categories reflecting distinct reasoning behaviors. To handle capitalization, whitespace, and trailing punctuation, we enumerate orthographic variants of each token and encode them with the model's tokenizer, collecting only the final token ID for multi-token fragments. The resulting token-ID set $\mathcal{I}$ is cached and reused across all training steps.
 
