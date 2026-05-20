@@ -357,7 +357,7 @@ Second, \textbf{full reasoning traces cause extreme suppression}, reducing epist
 In short, epistemic tokens are infrequent yet signal-heavy and functionally important. This diagnosis directly motivates our intervention.
 
 % ═══════════════════════════════════════════════════════════════
-\section{Method: Epistemic Token Masking}
+\section{Masked Self-Distillation}
 % ═══════════════════════════════════════════════════════════════
 
 The diagnosis above reveals the root cause: the token-level self-distillation signal concentrates on epistemic tokens.
@@ -516,7 +516,8 @@ Table~\ref{tab:cot_results} reports the main results, full training trajectories
 \end{table*}
 
 Naive self-distillation degrades performance sharply, dropping 6--8~pp on AIME for both model sizes. This degradation follows a characteristic two-stage dynamic. Epistemic tokens are rapidly suppressed early in training, causing a sharp drop in accuracy. The model then partially recovers through but never returns to initial performance. 
-Masked self-distillation avoids this degradation entirely---the epistemic-token masking preserves reflective reasoning behavior, while allowing the model to benefit from the self-distillation signal on non-epistemic positions. The protective effect is larger on the 1.5B model ($+$5.3~pp AIME24) and still consistent on the 7B model ($+$1.2~pp). Masked self-distillation also substantially outperforms SFT and GRPO across all benchmarks.
+
+Masked self-distillation avoids this degradation entirely---the epistemic-token masking preserves reflective reasoning behavior, while allowing the model to benefit from the self-distillation signal on non-epistemic positions. Masked self-distillation also outperforms SFT and GRPO across all benchmarks.
 
 SFT shows modest but consistent improvement---particularly on MATH-500, which is closer to its training distribution. GRPO provides no consistent improvement and ends near or below the base model on most benchmarks. DeepSeek-R1-Distill-Qwen is already distilled from an extensively RL-trained model~\cite{guo2025deepseek}, so its policy is well-aligned and the sparse outcome reward provides little additional signal. This is consistent with prior findings that outcome-based RL is most effective on pretrained base models rather than already reasoning-optimized ones~\cite{shao2024deepseekmath}.
 
@@ -756,7 +757,28 @@ Let $r_\theta(o_{i,t}) = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \,/\, \pi_{\theta}
 \]
 Unlike self-distillation, GRPO uses no teacher model and no per-token supervision---its reward signal is a single scalar per response. Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
+\section{Full Epistemic Token Set}
 
+We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The base set consists of 10 tokens:
+\[
+\mathcal{E} = \{\text{wait, hmm, perhaps, maybe, actually, alternatively, seems, might, likely, check}\}.
+\]
+To handle capitalization, whitespace, and punctuation, we enumerate variants for each base token and encode them with the model's tokenizer:
+{\small
+\begin{align*}
+\text{wait}:\; & \text{Wait, Wait, Wait., Wait,}, \text{ wait, wait, wait., wait,} \\
+\text{hmm}:\; & \text{Hmm, Hmm, Hmm., Hmm,}, \text{ hmm, hmm, hmm., hmm,} \\
+\text{perhaps}:\; & \text{Perhaps, Perhaps, Perhaps., perhaps, perhaps, perhaps.} \\
+\text{maybe}:\; & \text{Maybe, Maybe, Maybe., maybe, maybe, maybe.} \\
+\text{actually}:\; & \text{Actually, Actually, Actually., actually, actually, actually.} \\
+\text{alternatively}:\; & \text{Alternatively, Alternatively, Alternatively., alternatively, alternatively, alternatively.} \\
+\text{seems}:\; & \text{Seems, Seems, Seems., seems, seems, seems.} \\
+\text{might}:\; & \text{Might, Might, Might., might, might, might.} \\
+\text{likely}:\; & \text{Likely, Likely, Likely., likely, likely, likely.} \\
+\text{check}:\; & \text{Check, Check, Check., check, check, check.}
+\end{align*}
+}
+Each variant also appears with a leading space for mid-sentence occurrences. Multi-token encodings take only the last token ID. The final token-ID set $\mathcal{I}$ is cached and reused across training steps.
 
 \begin{table*}[p]
   \centering
