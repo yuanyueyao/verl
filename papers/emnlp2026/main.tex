@@ -649,6 +649,30 @@ We use the same training data as self-distillation (the \texttt{COT\_Reason} fie
 Training hyperparameters are listed in Table~\ref{tab:hyperparams}.
 
 \clearpage
+\section{Full Epistemic Token Set}
+
+We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The set is organized into four functional categories reflecting distinct reasoning behaviors. To handle capitalization, whitespace, and trailing punctuation, we enumerate orthographic variants of each token and encode them with the model's tokenizer, collecting only the final token ID for multi-token fragments. The resulting token-ID set $\mathcal{I}$ is cached and reused across all training steps.
+
+\begin{tcolorbox}[colback=PromptBg, colframe=PromptBorder, arc=1mm, boxrule=0.5pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt, before skip=6pt, after skip=6pt,
+  title=Epistemic Token Set ($\mathcal{E}$), fonttitle=\bfseries\small,
+  coltitle=black, colbacktitle=PromptBorder, toptitle=2pt, bottomtitle=2pt]
+\small
+\begin{description}[leftmargin=*,nosep,font=\normalfont\itshape]
+\item[Uncertainty / Hedging.]
+wait, hmm, hmmm, perhaps, maybe, seems, appears, might, likely, possibly, probably, roughly, approximately, I think, I believe, I suppose, not entirely sure, unclear, uncertain.
+
+\item[Reconsideration / Revision.]
+actually, alternatively, or rather, or maybe, on second thought, upon reflection, that said, having said that, but then, although, however, I wonder if, what if, could it be that.
+
+\item[Self-Checking / Verification.]
+check, double-check, verify, confirm, make sure, ensure, let me check, let me verify, let me confirm, let me see, let's see, is that right, is this correct, does this make sense.
+
+\item[Error Recognition / Correction.]
+wait, hold on, not quite, not exactly, that's not right, that can't be, something's off, I made a mistake, let me correct, let me redo, scratch that, I mean, rather, actually I think.
+\end{description}
+\end{tcolorbox}
+
 \onecolumn
 \section{Case Study: Domain Error from Suppressed Verification}
 \label{app:case}
@@ -740,30 +764,6 @@ Thus: \(\boxed{\left[ \dfrac{\pi^2}{8}, \dfrac{5\pi^2}{4} \right]}\).
 The masked-distilled model preserves the correct domain \([0, \pi]\) and the verification routine (``Wait, hold on,'' ``Let me verify,'' ``All consistent''). It checks all three candidate points rather than prematurely concluding from two coinciding endpoint values. The epistemic verification habit---suppressed under naive self-distillation---is retained because the per-token distillation signal at epistemic positions is excluded from the loss.
 \end{casenote}
 
-
-\section{Full Epistemic Token Set}
-
-We define the epistemic token set based on prior work on verbalized uncertainty and self-reflection~\cite{yona2024faithfully,wang2025wait,troitskii2025internal}, refined using our diagnostic probes (Section~\ref{sec:diagnosis}). The set is organized into four functional categories reflecting distinct reasoning behaviors. To handle capitalization, whitespace, and trailing punctuation, we enumerate orthographic variants of each token and encode them with the model's tokenizer, collecting only the final token ID for multi-token fragments. The resulting token-ID set $\mathcal{I}$ is cached and reused across all training steps.
-
-\begin{tcolorbox}[colback=PromptBg, colframe=PromptBorder, arc=1mm, boxrule=0.5pt,
-  left=10pt, right=10pt, top=8pt, bottom=8pt, before skip=6pt, after skip=6pt,
-  title=Epistemic Token Set ($\mathcal{E}$), fonttitle=\bfseries\small,
-  coltitle=black, colbacktitle=PromptBorder, toptitle=2pt, bottomtitle=2pt]
-\small
-\begin{description}[leftmargin=*,nosep,font=\normalfont\itshape]
-\item[Uncertainty / Hedging.]
-wait, hmm, hmmm, perhaps, maybe, seems, appears, might, likely, possibly, probably, roughly, approximately, I think, I believe, I suppose, not entirely sure, unclear, uncertain.
-
-\item[Reconsideration / Revision.]
-actually, alternatively, or rather, or maybe, on second thought, upon reflection, that said, having said that, but then, although, however, I wonder if, what if, could it be that.
-
-\item[Self-Checking / Verification.]
-check, double-check, verify, confirm, make sure, ensure, let me check, let me verify, let me confirm, let me see, let's see, is that right, is this correct, does this make sense.
-
-\item[Error Recognition / Correction.]
-wait, hold on, not quite, not exactly, that's not right, that can't be, something's off, I made a mistake, let me correct, let me redo, scratch that, I mean, rather, actually I think.
-\end{description}
-\end{tcolorbox}
 
 \section{Group Relative Policy Optimization (GRPO)}
 
