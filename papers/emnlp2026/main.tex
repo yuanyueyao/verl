@@ -137,10 +137,10 @@
 On-policy self-distillation is becoming a promising post-training paradigm for large language models.
 In this paradigm, the model first samples its own response as a student, and then conditioned on additional context, provides token-level supervision on that response as a teacher.
 However, we find it can severely degrade mathematical reasoning.
-We trace this degradation to a specific mechanism: the teacher, conditioned on a reference solution, systematically suppresses student's \textit{epistemic tokens} such as ``Wait'', which express uncertainty and support self-verification during complex reasoning.
+We trace this degradation to a specific mechanism: the teacher, conditioned on a reference solution, systematically suppresses the student's \textit{epistemic tokens} such as ``Wait'', which express uncertainty and support self-verification during complex reasoning.
 Although these tokens occupy only a small fraction of model outputs, they receive a severe suppression signal from the teacher, pushing the student toward overconfident, less reflective responses.
 We further show that suppression severity depends on how detailed the reference solution is.
-Based on above analysis, we propose \textit{masked self-distillation}, a minimal modification that excludes epistemic tokens from the distillation loss.
+Based on the above analysis, we propose \textit{masked self-distillation}, a minimal modification that excludes epistemic tokens from the distillation loss.
 This simple intervention preserves reflective reasoning behavior.
 Experiments across AIME24, AIME25, and MATH-500 demonstrate the superiority of masked self-distillation over naive self-distillation.
 \end{abstract}
@@ -153,6 +153,7 @@ On-policy self-distillation has recently emerged as a post-training paradigm for
 In this paradigm, the same model acts as both student and teacher under asymmetric conditioning: the teacher receives ground-truth solutions or environment feedback as privileged information, while the student sees only the problem.
 The student first samples its own response. The teacher, now seeing the reference, computes a next-token distribution at each position of that response. The student is then trained to match this teacher distribution via per-token KL divergence.\footnote{See Equation~\ref{eq:sd_loss} for the formal definition.}
 
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/teaser.pdf}
@@ -160,25 +161,25 @@ The student first samples its own response. The teacher, now seeing the referenc
 \label{fig:teaser}
 \end{figure}
 
-Recent work~\cite{hubotter2026reinforcement,zhang2026simple,zhang2026opsdl,jin2026unisd} has been successful across science QA, tool use, code generation, world knowledge, long-context learning, and multi-task adaptation.
+Recent work~\cite{hubotter2026reinforcement,zhang2026simple,zhang2026opsdl,jin2026unisd} has been successful across science QA, tool use, code generation, world-knowledge tasks, long-context learning, and multi-task adaptation.
 These successes suggest that self-distillation can be effective in settings where concise, confident outputs are sufficient.
 
 However, this paradigm harbors a striking and structured failure mode.
-When applied to challenging mathematical reasoning benchmarks~\cite{hendrycks2021measuring,cobbe2021training,patel2021svamp,saxton2019analysing}, self-distillation can severely degrade out-of-distribution performance.
-This contrast---self-distillation appears effective in tool, chemistry, world knowledge, or code-like settings yet fails in our mathematical reasoning setting---raises a fundamental question:
+When applied to challenging mathematical reasoning benchmarks~\cite{hendrycks2021measuring,cobbe2021training,saxton2019analysing}, self-distillation can severely degrade out-of-distribution performance.
+This contrast---self-distillation appears effective in tool-use tasks, science QA, world-knowledge tasks, and code-generation settings yet fails in our mathematical reasoning setting---raises a fundamental question:
 \textit{Why does self-distillation degrade mathematical reasoning?}
 
 We trace the root cause to the suppression of epistemic tokens---the model's explicit uncertainty expressions like ``Wait'', ``Hmm'', ``perhaps'', and ``alternatively''.
 When the teacher sees the detailed reference solution, it produces confident reasoning with minimal uncertainty. The student imitates this style and loses the exploratory behavior needed to recover from errors.
 A token-level analysis reveals why: the teacher systematically assigns lower probability to student-generated epistemic tokens, creating a suppression signal that pushes the student toward less reflective continuations.
-Figure~\ref{fig:teaser} illustrates this contrast. This mechanism grows more severe when teacher is provided with richer reference context: concise solutions cause mild suppression, while solutions with full reasoning traces cause extreme suppression.
+Figure~\ref{fig:teaser} illustrates this contrast. This mechanism grows more severe when the teacher is provided with richer reference context: concise solutions cause mild suppression, while solutions with full reasoning traces cause extreme suppression.
 
 
 This diagnosis directly motivates a simple intervention: \textit{epistemic token masking}. During self-distillation, we exclude positions where the student generates an epistemic token from the distillation loss, removing the suppressive signal while preserving ordinary distillation elsewhere. Figure~\ref{fig:overview} illustrates this contrast.
 
 Our contributions are:
 \begin{enumerate}[leftmargin=*,nosep]
-    \item We show that on-policy self-distillation severely degrading reasoning ability by suppressing epistemic tokens, and the severity is based on the detail level of teacher's privileged context.
+    \item We show that on-policy self-distillation severely degrades reasoning ability by suppressing epistemic tokens, and the severity depends on the level of detail in the teacher's privileged context.
 
     \item We introduce masked self-distillation, a drop-in loss modification that excludes epistemic-token positions from the self-distillation loss, preserving the student's reflective reasoning behavior while keeping self-distillation's advantage.
 
@@ -188,9 +189,9 @@ Our contributions are:
 \centering
 \includegraphics[width=\textwidth]{figures/emnlp_overview.pdf}
 \caption{\textbf{Overview of epistemic token masking.}
-Using a simple math problem as a example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom).
+Using a simple math problem as an example, the figure contrasts naive self-distillation (top) with our masked self-distillation method (bottom).
 Orange-highlighted tokens denote \colorbox{orange!22}{epistemic tokens} (``Hmm,'' ``Wait,'' ``check'').
-\textbf{Top:} Naive self-distillation applies self-distillation signal at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic confidential alternatives.  Post-distillation, the student loses self-verification and retains the initial mistake.
+\textbf{Top:} Naive self-distillation applies the self-distillation signal at every response position, so epistemic-token positions are pushed toward teacher-favored non-epistemic confident alternatives.  Post-distillation, the student loses self-verification and retains the initial mistake.
 \textbf{Bottom:} Our masked loss protects epistemic positions while still penalizing errors. Post-distillation, the student retains self-verification and arrives at the correct answer.
 Training curves on the right summarize the accuracy and output length trends.}
 \label{fig:overview}
@@ -198,7 +199,7 @@ Training curves on the right summarize the accuracy and output length trends.}
 
 
 % ═══════════════════════════════════════════════════════════════
-\section{Background and Related Work}
+\section{Preliminaries and Related Work}
 \label{sec:background}
 % ═══════════════════════════════════════════════════════════════
 
@@ -256,7 +257,7 @@ The dense token-level objective treats these roles uniformly, which creates a sp
 
 \subsection{Domain Contrast: Success and Failure of Self-Distillation}
 
-Prior self-distillation work reports strong results in science~QA, tool-use, code generation, long-context learning, and broad adaptation benchmarks~\cite{hubotter2026reinforcement,zhang2026opsdl,jin2026unisd,zhang2026simple}.
+Prior self-distillation work reports strong results in science~QA, tool use, code generation, long-context learning, and broad adaptation benchmarks~\cite{hubotter2026reinforcement,zhang2026opsdl,jin2026unisd,zhang2026simple}.
 In these settings, concise and confident responses are often enough once the environment feedback, relevant fact or reference solution is available.
 Mathematical reasoning is different: solving hard problems often requires checking intermediate steps, revising false starts, and trying alternative paths.
 Epistemic tokens are part of this behavior rather than just style, so suppressing them can remove useful support for complex reasoning.
@@ -471,7 +472,7 @@ Training data are drawn from the mathematical reasoning portion of OpenThoughts 
 The teacher receives the available full reasoning trace as privileged context, while other types of reference contexts (e.g., concise solutions, correct answer only) are used only in the diagnostic probe.
 
 \textbf{Baselines and evaluation.}
-We compare masked self-distillation against four baselines:(1) naive self-distillation, which uses the same teacher-to-student KL objective without masking. (2) the base model without any training, (3) Supervised Fine-Tuning (SFT) on full-reasoning-treace reference solutions, (4) GRPO with sparse outcome reward~\cite{shao2024deepseekmath}.
+We compare masked self-distillation against four baselines: (1) naive self-distillation, which uses the same teacher-to-student KL objective without masking. (2) the base model without any training, (3) Supervised Fine-Tuning (SFT)~\cite{ouyang2022training} on full reasoning trace reference solutions, (4) GRPO with sparse outcome reward~\cite{shao2024deepseekmath}.
 More training details are reported in Appendix~\ref{app:hyperparams}.
 We evaluate on AIME 2024, AIME 2025~\cite{guo2025deepseek}, and MATH-500~\cite{hendrycks2021measuring}.
 For AIME, we report \textit{avg@12}: average correctness over 12 sampled responses per problem, macro-averaged over problems.
@@ -515,7 +516,7 @@ Table~\ref{tab:cot_results} reports the main results, full training trajectories
 \label{tab:cot_results}
 \end{table*}
 
-Naive self-distillation degrades performance sharply, dropping 6--8~pp on AIME for both model sizes. This degradation follows a characteristic two-stage dynamic. Epistemic tokens are rapidly suppressed early in training, causing a sharp drop in accuracy. The model then partially recovers through but never returns to initial performance. 
+Naive self-distillation degrades performance sharply, dropping performance significantly. This degradation follows a characteristic two-stage dynamic. Epistemic tokens are rapidly suppressed early in training, causing a sharp drop in accuracy. The model then partially recovers but never returns to initial performance. 
 
 Masked self-distillation avoids this degradation entirely---the epistemic-token masking preserves reflective reasoning behavior, while allowing the model to benefit from the self-distillation signal on non-epistemic positions. Masked self-distillation also outperforms SFT and GRPO across all benchmarks.
 
@@ -565,11 +566,11 @@ By preserving epistemic tokens, masked self-distillation keeps both accuracy and
 \paragraph{Why does such a simple intervention work?}
 Our diagnostic findings provide a clear causal account: self-distillation degradation is driven by a concentrated mechanism—the teacher's systematic suppression of a small, specific set of tokens.
 These epistemic tokens constitute roughly 12\% of response tokens in our math-reasoning probe but account for a disproportionate percentage of the aggregate token-level self-distillation signal.
-By protecting only these positions, we eliminate the source of degradation without meaningfully reducing the token-level self-distillation signal elsewhere valuable.
+By protecting only these positions, we eliminate the source of degradation without meaningfully reducing the valuable token-level self-distillation signal elsewhere.
 
 \paragraph{Domain generality.}
 Our findings help explain why self-distillation behaves differently across domains.
-Tasks such as tool-use, science QA, and worldknowledge QA could be seen as knowledge-intensive, so a concise teacher trace can be helpful rather than harmful.
+Tasks such as tool use, science QA, and world-knowledge QA could be seen as knowledge-intensive, so a concise teacher trace can be helpful rather than harmful.
 In mathematical reasoning, however, exploration, self-verification, and recovery from intermediate errors depend on explicit uncertainty expression, and suppressing epistemic tokens is therefore highly damaging.
 Because epistemic tokens are rare in knowledge-intensive domains, we expect the mask to have little effect there.
 
@@ -580,7 +581,7 @@ This suggests that practitioners can choose reference contexts to balance learni
 
 \paragraph{Limitations.}
 Our study is limited to the DeepSeek-R1-Distill-Qwen reasoning model family.
-The epistemic token set may not fit for all domains and diffrenrt model families that have different uncertainty expressions, though our experiments suggest the current set captures the most impactful tokens.
+The epistemic token set may not fit for all domains and different model families that have different uncertainty expressions, though our experiments suggest the current set captures the most impactful tokens.
 Adaptive token identification, per-domain epistemic token sets or entropy-based masking are promising directions for future work.
 
 \paragraph{Broader implications.}
@@ -595,9 +596,9 @@ Our results suggest that it's worthwhile to consider token function in post-trai
 \section{Conclusion}
 % ═══════════════════════════════════════════════════════════════
 In this paper, we identify a failure mode of on-policy self-distillation in mathematical reasoning. 
-We show that naive self-distillation degrades reflective reasoning ability through punishing epistemic tokens, thus suppressing the hesitation, revision, and self-verification behaviors needed for complex reasoning.
+We show that naive self-distillation degrades reflective reasoning ability by punishing epistemic tokens, thus suppressing the hesitation, revision, and self-verification behaviors needed for complex reasoning.
 To address this issue, we propose masked self-distillation. 
-Our experiments demonstrate that masked self-distillation mitigates the degradation of naive self-distillation and preserves reflective reasoning behavior, and outperforms other two post-training paradigms. 
+Our experiments demonstrate that masked self-distillation mitigates the degradation of naive self-distillation and preserves reflective reasoning behavior, and outperforms the other two post-training paradigms. 
 These results suggest that post-training objectives may need to account for token function, rather than treating all tokens the same way.
 % ═══════════════════════════════════════════════════════════════
 % Bibliography
